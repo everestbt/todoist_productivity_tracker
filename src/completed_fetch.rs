@@ -25,7 +25,7 @@ pub struct CompletedStats {
     pub goals: Goals,
 }
 
-pub async fn get_completed_stats(key : &str) -> CompletedStats {
+pub async fn get_completed_stats(key : &String) -> CompletedStats {
     let req: Result<reqwest::Response, reqwest::Error> = reqwest::Client::new()
         .get("https://api.todoist.com/api/v1/tasks/completed/stats")
         .header("Authorization", "Bearer ".to_owned() + &key)
