@@ -2,7 +2,7 @@ mod completed_fetch;
 mod filter_tasks;
 mod update_task;
 
-use chrono::{DateTime, Days, Local, NaiveDateTime, NaiveDate};
+use chrono::{Days, Local, NaiveDateTime, NaiveDate};
 use clap::Parser;
 
 // Command line arguments
@@ -17,9 +17,13 @@ struct Args {
     #[arg(short, long)]
     status: bool,
 
-    /// Whether to postpone tasks assigned to today
+    /// Postpone tasks assigned to today to tomorrow
     #[arg(short, long)]
     postpone: bool,
+
+    /// Bring overdue to today
+    #[arg(short, long)]
+    overdue: bool,
 }
 
 #[tokio::main]
@@ -27,6 +31,9 @@ async fn main() -> Result<(), reqwest::Error> {
     let args = Args::parse();
 
     let key: String = args.key;
+
+    let today:NaiveDate = Local::now().naive_local().date();
+
     if args.status {
         let stats = completed_fetch::get_completed_stats(&key).await;
 
@@ -46,13 +53,10 @@ async fn main() -> Result<(), reqwest::Error> {
         else {
             println!("Mode: Meaingful!")
         }
-
-        // Get today's date
-        let now: DateTime<Local> = Local::now();
     
         // Check whether to change daily goal
         let min_daily: i32 = stats.days_items.iter()
-                .filter(|x| x.date != now.naive_local().date().to_string()) // Filter out today's date
+                .filter(|x| x.date != today.to_string()) // Filter out today's date
                 .map(|x| x.total_completed)
                 .min().unwrap();
         if min_daily == stats.goals.daily_goal {
@@ -88,17 +92,31 @@ async fn main() -> Result<(), reqwest::Error> {
                     due_date = NaiveDateTime::parse_from_str(&t.due.date.to_owned(), "%Y-%m-%dT%H:%M:%S").unwrap();
                 }
                 let tomorrow = due_date.checked_add_days(Days::new(1)).unwrap();
-                println!("{content} {today} {tomorrow}", content = t.content, today = due_date, tomorrow = tomorrow);
                 update_task::update_task_due(&key, &t.id, tomorrow.format("%Y-%m-%dT%H:%M:%S").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
             }
             // If it is only a date 
             else {
                 let due_date = NaiveDate::parse_from_str(&t.due.date.to_owned(), "%Y-%m-%d").unwrap();
                 let tomorrow = due_date.checked_add_days(Days::new(1)).unwrap();
-                println!("{content} {today} {tomorrow}", content = t.content, today = due_date, tomorrow = tomorrow);
                 update_task::update_task_due(&key, &t.id, tomorrow.format("%Y-%m-%d").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
             }
             println!("Rescheduled {content} to tomorrow", content = t.content)
+        }
+    }
+
+    if args.overdue {
+        let todays_tasks = filter_tasks::get_overdue_tasks(&key).await;
+        for t in todays_tasks.iter() {
+            // Update the date to today
+            // If it contains a time, do the following:
+            if t.due.date.contains("T") {
+                update_task::update_task_due(&key, &t.id, today.format("%Y-%m-%dT%H:%M:%S").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
+            }
+            // If it is only a date 
+            else {
+                update_task::update_task_due(&key, &t.id, today.format("%Y-%m-%d").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
+            }
+            println!("Rescheduled {content} to today", content = t.content)
         }
     }
 

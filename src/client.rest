@@ -21,5 +21,6 @@ Content-Type:  application/json
 
 {
     "due_date":"2025-07-27",
+    "due_string":"19 Jan",
     "due_lang": "en"
 }

@@ -42,3 +42,26 @@ pub async fn get_todays_tasks(key : &String) -> Vec<Task> {
 
     response.unwrap().results
 }
+
+pub async fn get_overdue_tasks(key : &String) -> Vec<Task> {
+    let req: Result<reqwest::Response, reqwest::Error> = reqwest::Client::new()
+        .get("https://api.todoist.com/api/v1/tasks/filter?query=overdue&limit=200")
+        .header("Authorization", "Bearer ".to_owned() + &key)
+        .send()
+        .await;
+
+    match req.is_err() {
+        true => panic!(),
+        false => (),
+    }
+    let response: Result<Response, reqwest::Error> = req.unwrap()
+        .json()
+        .await;
+
+    match response.is_err() {
+        true => panic!("{}",response.unwrap_err().to_string()),
+        false => (),
+    }
+
+    response.unwrap().results
+}
