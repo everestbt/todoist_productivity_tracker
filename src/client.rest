@@ -1,0 +1,25 @@
+@todoistApiKey=<KEY>
+@taskId=<TASK ID>
+
+### Tasks call
+GET https://api.todoist.com/api/v1/tasks?limit=200
+Authorization: Bearer {{todoistApiKey}}
+Content-type: application/json
+
+### Filter call - today
+GET https://api.todoist.com/api/v1/tasks/filter?query=today&limit=200
+Authorization: Bearer {{todoistApiKey}}
+
+### Filter call - overdue
+GET https://api.todoist.com/api/v1/tasks/filter?query=overdue&limit=200
+Authorization: Bearer {{todoistApiKey}}
+
+### Update a single task to tomorrow
+POST https://api.todoist.com/api/v1/tasks/{{taskId}}
+Authorization: Bearer {{todoistApiKey}}
+Content-Type:  application/json
+
+{
+    "due_date":"2025-07-27",
+    "due_lang": "en"
+}

@@ -1,20 +1,25 @@
 mod completed_fetch;
+mod filter_tasks;
+mod update_task;
 
-use chrono::{Local, DateTime};
+use chrono::{DateTime, Days, Local, NaiveDateTime, NaiveDate};
 use clap::Parser;
 
 // Command line arguments
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
+    /// The API key for Todoist
+    #[arg(short, long)]
+    key: String,
+
     /// Whether to return a status update
     #[arg(short, long)]
     status: bool,
 
-    // The API key for Todoist
+    /// Whether to postpone tasks assigned to today
     #[arg(short, long)]
-    key: String,
-
+    postpone: bool,
 }
 
 #[tokio::main]
@@ -66,6 +71,34 @@ async fn main() -> Result<(), reqwest::Error> {
         }
         else {
             println!("New weekly goal should be {new}", new = min_weekly)
+        }
+    }
+
+    if args.postpone {
+        let todays_tasks = filter_tasks::get_todays_tasks(&key).await;
+        for t in todays_tasks.iter() {
+            // Update the date to tomorrow
+            // If it contains a time, do the following:
+            if t.due.date.contains("T") {
+                let due_date : NaiveDateTime;
+                if t.due.date.contains("Z") {
+                due_date = NaiveDateTime::parse_from_str(&t.due.date.to_owned(), "%Y-%m-%dT%H:%M:%SZ").unwrap();
+                }
+                else {
+                    due_date = NaiveDateTime::parse_from_str(&t.due.date.to_owned(), "%Y-%m-%dT%H:%M:%S").unwrap();
+                }
+                let tomorrow = due_date.checked_add_days(Days::new(1)).unwrap();
+                println!("{content} {today} {tomorrow}", content = t.content, today = due_date, tomorrow = tomorrow);
+                update_task::update_task_due(&key, &t.id, tomorrow.format("%Y-%m-%dT%H:%M:%S").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
+            }
+            // If it is only a date 
+            else {
+                let due_date = NaiveDate::parse_from_str(&t.due.date.to_owned(), "%Y-%m-%d").unwrap();
+                let tomorrow = due_date.checked_add_days(Days::new(1)).unwrap();
+                println!("{content} {today} {tomorrow}", content = t.content, today = due_date, tomorrow = tomorrow);
+                update_task::update_task_due(&key, &t.id, tomorrow.format("%Y-%m-%d").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
+            }
+            println!("Rescheduled {content} to tomorrow", content = t.content)
         }
     }
 
