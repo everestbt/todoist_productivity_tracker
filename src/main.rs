@@ -42,7 +42,11 @@ async fn main() -> Result<(), reqwest::Error> {
             .map(|x| x.total_completed)
             .sum();
 
-        println!("Progress: {done} / {goal}",
+        println!("Daily Progress: {done} / {goal}",
+            done = stats.days_items.iter().find(|x| x.date == today.to_string()).unwrap().total_completed,
+            goal = stats.goals.daily_goal);
+
+        println!("Weekly Progress: {done} / {goal}",
             done = sum_of_tasks,
             goal = stats.goals.weekly_goal);
 
