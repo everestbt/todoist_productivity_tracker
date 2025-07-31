@@ -24,3 +24,19 @@ Content-Type:  application/json
     "due_string":"19 Jan",
     "due_lang": "en"
 }
+
+### Update the daily goal
+POST https://api.todoist.com/api/v1/sync
+Authorization: Bearer {{todoistApiKey}}
+Content-Type:  application/json
+
+{
+    "commands": [
+        {
+        "type": "update_goals",
+        "uuid": "b9bbeaf8-9db6-452a-a843-a192f1542893",
+        "args": {"daily_goal": 16}
+    }
+    ]
+}
+

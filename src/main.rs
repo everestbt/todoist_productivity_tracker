@@ -2,6 +2,7 @@ mod completed_fetch;
 mod filter_tasks;
 mod update_task;
 mod exclude_days;
+mod update_goals;
 
 use chrono::{Days, Local, NaiveDateTime, NaiveDate};
 use clap::Parser;
@@ -17,6 +18,10 @@ struct Args {
     /// Whether to return a status update
     #[arg(short, long)]
     status: bool,
+
+    /// Whether to update the goals, must be used with the status flag
+    #[arg(short, long)]
+    update_goals: bool,
 
     /// Postpone tasks assigned to today to tomorrow
     #[arg(short, long)]
@@ -80,7 +85,11 @@ async fn main() -> Result<(), reqwest::Error> {
             println!("Daily goal is right!")
         }
         else {
-            println!("New daily goal should be {new}, from {day}", new = min_daily.total_completed, day = min_daily.date)
+            println!("New daily goal should be {new}, from {day}", new = min_daily.total_completed, day = min_daily.date);
+            if args.update_goals {
+                update_goals::update_daily_goals(&key, &min_daily.total_completed).await;
+                println!("Updated daily goal to {new}", new = min_daily.total_completed);
+            }
         }
 
         // Check whether to increase daily goal (we don't include decrease due to holiday)
