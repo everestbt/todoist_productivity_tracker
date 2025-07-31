@@ -1,6 +1,7 @@
 mod completed_fetch;
 mod filter_tasks;
 mod update_task;
+mod exclude_days;
 
 use chrono::{Days, Local, NaiveDateTime, NaiveDate};
 use clap::Parser;
@@ -24,6 +25,10 @@ struct Args {
     /// Bring overdue to today
     #[arg(short, long)]
     overdue: bool,
+
+    /// A day you want to exclude from the daily goal calculation
+    #[arg(short, long)]
+    exclude_day: Option<String>,
 }
 
 #[tokio::main]
@@ -57,17 +62,25 @@ async fn main() -> Result<(), reqwest::Error> {
         else {
             println!("Mode: Meaingful!")
         }
-    
+        
+        // Load any days to exclude from daily goal calculation
+        let days_result = exclude_days::get_excluded_days();
+        match days_result.is_err() {
+            true => panic!(),
+            false => (),
+        }
+        let days : Vec<String> = days_result.unwrap().iter().map(|d| d.format("%Y-%m-%d").to_string()).collect();
+
         // Check whether to change daily goal
-        let min_daily: i32 = stats.days_items.iter()
-                .filter(|x| x.date != today.to_string()) // Filter out today's date
-                .map(|x| x.total_completed)
-                .min().unwrap();
-        if min_daily == stats.goals.daily_goal {
+        let min_daily = stats.days_items.iter()
+                .filter(|x| x.date != today.format("%Y-%m-%d").to_string()) // Filter out today's date
+                .filter(|x| !days.contains(&x.date)) // Filter out any excluded days 
+                .min_by_key(|x| x.total_completed).unwrap();
+        if min_daily.total_completed == stats.goals.daily_goal {
             println!("Daily goal is right!")
         }
         else {
-            println!("New daily goal should be {new}", new = min_daily)
+            println!("New daily goal should be {new}, from {day}", new = min_daily.total_completed, day = min_daily.date)
         }
 
         // Check whether to increase daily goal (we don't include decrease due to holiday)
@@ -122,6 +135,16 @@ async fn main() -> Result<(), reqwest::Error> {
             }
             println!("Rescheduled {content} to today", content = t.content)
         }
+    }
+
+    if args.exclude_day.is_some() {
+        let day = NaiveDate::parse_from_str(&args.exclude_day.unwrap().to_owned(), "%Y-%m-%d").unwrap();
+        let result = exclude_days::exclude_day(day);
+        match result.is_err() {
+            true => panic!(),
+            false => (),
+        }
+        println!("Excluded day {day}", day = day)
     }
 
     Ok(())
