@@ -2,6 +2,7 @@ mod completed_fetch;
 mod filter_tasks;
 mod update_task;
 mod exclude_days;
+mod exclude_weeks;
 mod update_goals;
 
 use chrono::{Days, Local, NaiveDateTime, NaiveDate, Weekday};
@@ -34,6 +35,10 @@ struct Args {
     /// A day you want to exclude from the daily goal calculation
     #[arg(short, long)]
     exclude_day: Option<String>,
+
+    /// A week you want to exclude from the weekly goal calculation, should be date of Monday
+    #[arg(short, long)]
+    exclude_week: Option<String>,
 }
 
 #[tokio::main]
@@ -95,9 +100,18 @@ async fn main() -> Result<(), reqwest::Error> {
         // Calculate date of this week to filter out
         let this_week_start_day = today.week(Weekday::Mon).first_day();
 
+        // Load any weeks to filter out from weekly goal calculation
+        let weeks_result = exclude_weeks::get_excluded_weeks();
+        match weeks_result.is_err() {
+            true => panic!(),
+            false => (),
+        }
+        let weeks : Vec<String> = weeks_result.unwrap().iter().map(|d| d.format("%Y-%m-%d").to_string()).collect();
+
         // Check whether to increase weekly goal
         let min_weekly = stats.week_items.iter()
                 .filter(|x| x.from != this_week_start_day.format("%Y-%m-%d").to_string()) // Filter out this week's day
+                .filter(|x| !weeks.contains(&x.from)) // Filter out any excluded weeks 
                 .min_by_key(|x| x.total_completed).unwrap();
         if min_weekly.total_completed == stats.goals.weekly_goal {
             println!("Weekly goal is right!")
@@ -157,6 +171,16 @@ async fn main() -> Result<(), reqwest::Error> {
             false => (),
         }
         println!("Excluded day {day}", day = day)
+    }
+
+    if args.exclude_week.is_some() {
+        let day = NaiveDate::parse_from_str(&args.exclude_week.unwrap().to_owned(), "%Y-%m-%d").unwrap();
+        let result = exclude_weeks::exclude_week(day);
+        match result.is_err() {
+            true => panic!(),
+            false => (),
+        }
+        println!("Excluded week from {day}", day = day)
     }
 
     Ok(())
