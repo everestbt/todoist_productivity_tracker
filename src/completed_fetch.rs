@@ -15,6 +15,7 @@ pub struct DayItem {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WeekItem {
+    pub from: String,
     pub total_completed: i32,
 }
 

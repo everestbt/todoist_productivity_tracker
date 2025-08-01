@@ -1,6 +1,11 @@
 @todoistApiKey=<KEY>
 @taskId=<TASK ID>
 
+### Stats call
+GET https://api.todoist.com/api/v1/tasks/completed/stats
+Authorization: Bearer {{todoistApiKey}}
+Content-type: application/json
+
 ### Tasks call
 GET https://api.todoist.com/api/v1/tasks?limit=200
 Authorization: Bearer {{todoistApiKey}}

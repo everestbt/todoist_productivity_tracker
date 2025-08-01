@@ -4,7 +4,7 @@ mod update_task;
 mod exclude_days;
 mod update_goals;
 
-use chrono::{Days, Local, NaiveDateTime, NaiveDate};
+use chrono::{Days, Local, NaiveDateTime, NaiveDate, Weekday};
 use clap::Parser;
 
 // Command line arguments
@@ -92,15 +92,18 @@ async fn main() -> Result<(), reqwest::Error> {
             }
         }
 
-        // Check whether to increase daily goal (we don't include decrease due to holiday)
-        let min_weekly: i32 = stats.week_items.iter()
-                .map(|x| x.total_completed)
-                .min().unwrap();
-        if min_weekly <= stats.goals.weekly_goal {
+        // Calculate date of this week to filter out
+        let this_week_start_day = today.week(Weekday::Mon).first_day();
+
+        // Check whether to increase weekly goal
+        let min_weekly = stats.week_items.iter()
+                .filter(|x| x.from != this_week_start_day.format("%Y-%m-%d").to_string()) // Filter out this week's day
+                .min_by_key(|x| x.total_completed).unwrap();
+        if min_weekly.total_completed == stats.goals.weekly_goal {
             println!("Weekly goal is right!")
         }
         else {
-            println!("New weekly goal should be {new}", new = min_weekly)
+            println!("New weekly goal should be {new}, from {day}", new = min_weekly.total_completed, day = min_weekly.from)
         }
     }
 
