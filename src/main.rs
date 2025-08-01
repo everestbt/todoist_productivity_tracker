@@ -4,9 +4,11 @@ mod update_task;
 mod exclude_days;
 mod exclude_weeks;
 mod update_goals;
+mod productivity_mode;
 
 use chrono::{Days, Local, NaiveDateTime, NaiveDate, Weekday};
 use clap::Parser;
+use std::string::ToString;
 
 // Command line arguments
 #[derive(Parser, Debug)]
@@ -66,13 +68,10 @@ async fn main() -> Result<(), reqwest::Error> {
             goal = stats.goals.weekly_goal);
 
         // Check what mode you should be operating in
-        if sum_of_tasks < (stats.goals.weekly_goal - stats.goals.daily_goal) {
-            println!("Mode: Chores!")
-        }
-        else {
-            println!("Mode: Meaingful!")
-        }
-        
+        let done_today = stats.days_items.iter().find(|x| x.date == today.format("%Y-%m-%d").to_string()).unwrap();
+        let mode = productivity_mode::calculate_mode(sum_of_tasks, stats.goals.weekly_goal, stats.goals.daily_goal, done_today.total_completed);
+        println!("Mode: {mode}!", mode = mode.to_string());
+
         // Load any days to exclude from daily goal calculation
         let days_result = exclude_days::get_excluded_days();
         match days_result.is_err() {
