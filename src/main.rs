@@ -92,7 +92,7 @@ async fn main() -> Result<(), reqwest::Error> {
         else {
             println!("New daily goal should be {new}, from {day}", new = min_daily.total_completed, day = min_daily.date);
             if args.update_goals {
-                update_goals::update_daily_goals(&key, &min_daily.total_completed).await;
+                update_goals::update_daily_goal(&key, &min_daily.total_completed).await;
                 println!("Updated daily goal to {new}", new = min_daily.total_completed);
             }
         }
@@ -117,7 +117,11 @@ async fn main() -> Result<(), reqwest::Error> {
             println!("Weekly goal is right!")
         }
         else {
-            println!("New weekly goal should be {new}, from {day}", new = min_weekly.total_completed, day = min_weekly.from)
+            println!("New weekly goal should be {new}, from {day}", new = min_weekly.total_completed, day = min_weekly.from);
+            if args.update_goals {
+                update_goals::update_weekly_goal(&key, &min_weekly.total_completed).await;
+                println!("Updated weekly goal to {new}", new = min_weekly.total_completed);
+            }
         }
     }
 
