@@ -1,11 +1,9 @@
-mod completed_fetch;
-mod filter_tasks;
-mod update_task;
-mod exclude_days;
-mod exclude_weeks;
-mod update_goals;
+mod api;
+mod db;
 mod productivity_mode;
 
+use api::{completed_fetch, filter_tasks, update_task, update_goals};
+use db::{exclude_days, exclude_weeks, key_store};
 use chrono::{Days, Local, NaiveDateTime, NaiveDate, Weekday};
 use clap::Parser;
 use std::string::ToString;
@@ -14,9 +12,9 @@ use std::string::ToString;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// The API key for Todoist
+    /// The API key for Todoist, only needs to be used once, and can be used to replace saved key
     #[arg(short, long)]
-    key: String,
+    key: Option<String>,
 
     /// Whether to return a status update
     #[arg(short, long)]
@@ -47,7 +45,15 @@ struct Args {
 async fn main() -> Result<(), reqwest::Error> {
     let args = Args::parse();
 
-    let key: String = args.key;
+    let key: String;
+    if args.key.is_some() {
+        key = args.key.unwrap();
+        key_store::save_key(&key).expect("Failed to save the key");
+        println!("Saved your key, no need to use --key each time now. You can replace it by using --key again")
+    }
+    else {
+        key = key_store::get_key().expect("Failed to load a key, use --key first");
+    }
 
     let today:NaiveDate = Local::now().naive_local().date();
 
