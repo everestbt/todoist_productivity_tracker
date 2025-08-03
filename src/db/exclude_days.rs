@@ -1,5 +1,7 @@
 use chrono::{Days, Local, NaiveDate};
 use rusqlite::{params, Connection, Result}; // For database operations and result handling
+use directories::{ProjectDirs};
+use std::fs;
 
 static DATABASE_NAME: &'static str = "todoist_productivity_tracker_database.db";
 
@@ -10,7 +12,7 @@ struct ExcludedDay {
 
 pub fn get_excluded_days() -> Result<Vec<NaiveDate>> {
     // Connect to SQLite database (creates the file if it doesn't exist)
-    let conn: Connection = Connection::open(DATABASE_NAME)?;
+    let conn: Connection = get_connection();
     create_table(&conn)?;
     
     let mut stmt = conn.prepare("SELECT id, day FROM excluded_days")?;
@@ -34,7 +36,7 @@ pub fn get_excluded_days() -> Result<Vec<NaiveDate>> {
 
 pub fn exclude_day(day: NaiveDate) -> Result<()> {
     // Connect to SQLite database (creates the file if it doesn't exist)
-    let conn: Connection = Connection::open(DATABASE_NAME)?;
+    let conn: Connection = get_connection();
     create_table(&conn)?;
 
     // First remove any unneeded days to keep it small
@@ -77,13 +79,25 @@ fn remove_old_days(conn: &Connection) -> Result<()> {
 }
 
 pub fn purge() -> Result<()> {
-    let conn: Connection = Connection::open(DATABASE_NAME)?;
+    let conn: Connection = get_connection();
     conn.execute(
         "DROP TABLE IF EXISTS excluded_days",
         [], // No parameters needed
     )?;
 
     Ok(())
+}
+
+fn get_connection() -> Connection {
+    let binding = ProjectDirs::from("com", "everest", "todoist_productivity_tracker")
+        .expect("Failed to get project directories");
+    let data_dir =  binding.data_local_dir();
+    if !fs::exists(data_dir).expect("Failed to check for directory") {
+        fs::create_dir(data_dir).expect("Failed to create directory");
+    }
+    let path = data_dir.join(DATABASE_NAME);
+    let conn: Connection = Connection::open(path).expect("Failed to open a connection");
+    return conn;
 }
 
 fn create_table(conn: &Connection) -> Result<()> {
