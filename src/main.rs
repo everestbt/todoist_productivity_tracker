@@ -32,11 +32,11 @@ struct Args {
     #[arg(short, long)]
     overdue: bool,
 
-    /// A day you want to exclude from the daily goal calculation
+    /// A day you want to exclude from the daily goal calculation, in format YYYY-MM-DD
     #[arg(short, long)]
     exclude_day: Option<String>,
 
-    /// A week you want to exclude from the weekly goal calculation, should be date of Monday
+    /// A week you want to exclude from the weekly goal calculation, should be date of Monday, in format YYYY-MM-DD
     #[arg(short, long)]
     exclude_week: Option<String>,
 
