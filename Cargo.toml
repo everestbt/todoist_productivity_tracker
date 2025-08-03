@@ -13,3 +13,7 @@ clap = { version = "4.5.41", features = ["derive"] }
 rusqlite = "0.37.0"
 uuid = { version = "1.17.0", features = ["v4"]}
 strum = { version = "0.27.2", features = ["derive"] }
+
+[[bin]]
+path = "src/main.rs"
+name = "todoist-tracker"
