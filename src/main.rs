@@ -132,43 +132,44 @@ async fn main() -> Result<(), reqwest::Error> {
 
     if args.postpone {
         let todays_tasks = filter_tasks::get_todays_tasks(&key).await;
+        println!("Found {} tasks to move to tomorrow", todays_tasks.len());
         for t in todays_tasks.iter() {
             // Update the date to tomorrow
-            // If it contains a time, do the following:
+            // If it contains a time then need to preserve that
             if t.due.date.contains("T") {
-                let due_date : NaiveDateTime;
-                if t.due.date.contains("Z") {
-                due_date = NaiveDateTime::parse_from_str(&t.due.date.to_owned(), "%Y-%m-%dT%H:%M:%SZ").unwrap();
-                }
-                else {
-                    due_date = NaiveDateTime::parse_from_str(&t.due.date.to_owned(), "%Y-%m-%dT%H:%M:%S").unwrap();
-                }
-                let tomorrow = due_date.checked_add_days(Days::new(1)).unwrap();
+                let due_date_time : NaiveDateTime = parse_due_date_time(&t.due.date);
+                let tomorrow = due_date_time.checked_add_days(Days::new(1)).unwrap();
                 update_task::update_task_due(&key, &t.id, tomorrow.format("%Y-%m-%dT%H:%M:%S").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
+                println!("Rescheduled {content} to {due}", content = t.content, due = tomorrow)
             }
             // If it is only a date 
             else {
                 let due_date = NaiveDate::parse_from_str(&t.due.date.to_owned(), "%Y-%m-%d").unwrap();
                 let tomorrow = due_date.checked_add_days(Days::new(1)).unwrap();
                 update_task::update_task_due(&key, &t.id, tomorrow.format("%Y-%m-%d").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
+                println!("Rescheduled {content} to tomorrow", content = t.content)
             }
-            println!("Rescheduled {content} to tomorrow", content = t.content)
         }
     }
 
     if args.overdue {
-        let todays_tasks = filter_tasks::get_overdue_tasks(&key).await;
-        for t in todays_tasks.iter() {
+        let overdue_tasks = filter_tasks::get_overdue_tasks(&key).await;
+        println!("Found {} tasks to move to today", overdue_tasks.len());
+        for t in overdue_tasks.iter() {
             // Update the date to today
-            // If it contains a time, do the following:
+            // If it contains a time then need to preserve that
             if t.due.date.contains("T") {
-                update_task::update_task_due(&key, &t.id, today.format("%Y-%m-%dT%H:%M:%S").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
+                // Need to put the time on today
+                let due_date_time = parse_due_date_time(&t.due.date);
+                let today_with_time = today.and_time(due_date_time.time());
+                update_task::update_task_due(&key, &t.id, today_with_time.format("%Y-%m-%dT%H:%M:%S").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
+                println!("Rescheduled {content} to {due}", content = t.content, due = today_with_time)
             }
             // If it is only a date 
             else {
                 update_task::update_task_due(&key, &t.id, today.format("%Y-%m-%d").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
+                println!("Rescheduled {content} to today", content = t.content)
             }
-            println!("Rescheduled {content} to today", content = t.content)
         }
     }
 
@@ -193,4 +194,15 @@ async fn main() -> Result<(), reqwest::Error> {
     }
 
     Ok(())
+}
+
+fn parse_due_date_time(due : &String) -> NaiveDateTime {
+    let due_date : NaiveDateTime;
+    if due.contains("Z") {
+        due_date = NaiveDateTime::parse_from_str(&due.to_owned(), "%Y-%m-%dT%H:%M:%SZ").unwrap();
+    }
+    else {
+        due_date = NaiveDateTime::parse_from_str(&due.to_owned(), "%Y-%m-%dT%H:%M:%S").unwrap();
+    }
+    due_date
 }
