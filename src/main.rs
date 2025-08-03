@@ -4,7 +4,7 @@ mod productivity_mode;
 
 use api::{completed_fetch, filter_tasks, update_task, update_goals};
 use db::{exclude_days, exclude_weeks, key_store};
-use chrono::{Days, Local, NaiveDateTime, NaiveDate, Weekday};
+use chrono::{Datelike, Days, Local, NaiveDate, NaiveDateTime, Weekday};
 use clap::Parser;
 use std::string::ToString;
 
@@ -189,12 +189,18 @@ async fn main() -> Result<(), reqwest::Error> {
 
     if args.exclude_week.is_some() {
         let day = NaiveDate::parse_from_str(&args.exclude_week.unwrap().to_owned(), "%Y-%m-%d").unwrap();
-        let result = exclude_weeks::exclude_week(day);
-        match result.is_err() {
-            true => panic!(),
-            false => (),
+        // Check that the day is a Monday
+        if day.weekday() != Weekday::Mon {
+            println!("An excluded week date must be a Monday");
         }
-        println!("Excluded week from {day}", day = day)
+        else {
+            let result = exclude_weeks::exclude_week(day);
+            match result.is_err() {
+                true => panic!(),
+                false => (),
+            }
+            println!("Excluded week from {day}", day = day)
+        }
     }
 
     if args.purge {
