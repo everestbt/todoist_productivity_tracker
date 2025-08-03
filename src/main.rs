@@ -39,6 +39,10 @@ struct Args {
     /// A week you want to exclude from the weekly goal calculation, should be date of Monday
     #[arg(short, long)]
     exclude_week: Option<String>,
+
+    /// Purge all the current saved data, useful to delete the saved api key and any excluded days/weeks
+    #[arg(short, long)]
+    purge: bool,
 }
 
 #[tokio::main]
@@ -49,7 +53,7 @@ async fn main() -> Result<(), reqwest::Error> {
     if args.key.is_some() {
         key = args.key.unwrap();
         key_store::save_key(&key).expect("Failed to save the key");
-        println!("Saved your key, no need to use --key each time now. You can replace it by using --key again")
+        println!("Saved your key, no need to use --key each time now. You can replace it by using --key again.")
     }
     else {
         key = key_store::get_key().expect("Failed to load a key, use --key first");
@@ -191,6 +195,12 @@ async fn main() -> Result<(), reqwest::Error> {
             false => (),
         }
         println!("Excluded week from {day}", day = day)
+    }
+
+    if args.purge {
+        key_store::purge().expect("Failed to purge key store");
+        exclude_days::purge().expect("Failed to exclude days store");
+        exclude_weeks::purge().expect("Failed to exclude weeks store");
     }
 
     Ok(())

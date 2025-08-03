@@ -45,9 +45,17 @@ pub fn save_key(key: &String) -> Result<()> {
     Ok(())
 }
 
-fn create_table(conn: &Connection) -> Result<()> {
+pub fn purge() -> Result<()> {
+    let conn: Connection = Connection::open(DATABASE_NAME)?;
+    conn.execute(
+        "DROP TABLE IF EXISTS todoist_key",
+        [], // No parameters needed
+    )?;
 
-    // Create a table named users
+    Ok(())
+}
+
+fn create_table(conn: &Connection) -> Result<()> {
     conn.execute(
         "CREATE TABLE IF NOT EXISTS todoist_key (
             id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -77,9 +77,17 @@ fn remove_old_weeks(conn: &Connection) -> Result<()> {
     Ok(())
 }
 
-fn create_table(conn: &Connection) -> Result<()> {
+pub fn purge() -> Result<()> {
+    let conn: Connection = Connection::open(DATABASE_NAME)?;
+    conn.execute(
+        "DROP TABLE IF EXISTS excluded_weeks",
+        [], // No parameters needed
+    )?;
 
-    // Create a table named users
+    Ok(())
+}
+
+fn create_table(conn: &Connection) -> Result<()> {
     conn.execute(
         "CREATE TABLE IF NOT EXISTS excluded_weeks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
