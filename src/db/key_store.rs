@@ -1,8 +1,6 @@
 use rusqlite::{params, Connection, Result}; // For database operations and result handling
-use directories::{ProjectDirs};
-use std::fs;
 
-static DATABASE_NAME: &'static str = "todoist_productivity_tracker_database.db";
+use todoist_productivity_tracker::db_lib::db_manager;
 
 struct Key {
     key: String,
@@ -10,7 +8,7 @@ struct Key {
 
 pub fn get_key() -> Result<String> {
     // Connect to SQLite database (creates the file if it doesn't exist)
-    let conn: Connection = get_connection();
+    let conn: Connection = db_manager::get_connection();
     create_table(&conn)?;
     
     let mut stmt = conn.prepare("SELECT key FROM todoist_key")?;
@@ -29,7 +27,7 @@ pub fn get_key() -> Result<String> {
 
 pub fn save_key(key: &String) -> Result<()> {
     // Connect to SQLite database (creates the file if it doesn't exist)
-    let conn: Connection = get_connection();
+    let conn: Connection = db_manager::get_connection();
     create_table(&conn)?;
     
     // Clear the table
@@ -48,25 +46,13 @@ pub fn save_key(key: &String) -> Result<()> {
 }
 
 pub fn purge() -> Result<()> {
-    let conn: Connection = get_connection();
+    let conn: Connection = db_manager::get_connection();
     conn.execute(
         "DROP TABLE IF EXISTS todoist_key",
         [], // No parameters needed
     )?;
 
     Ok(())
-}
-
-fn get_connection() -> Connection {
-    let binding = ProjectDirs::from("com", "everest", "todoist_productivity_tracker")
-        .expect("Failed to get project directories");
-    let data_dir =  binding.data_local_dir();
-    if !fs::exists(data_dir).expect("Failed to check for directory") {
-        fs::create_dir(data_dir).expect("Failed to create directory");
-    }
-    let path = data_dir.join(DATABASE_NAME);
-    let conn: Connection = Connection::open(path).expect("Failed to open a connection");
-    return conn;
 }
 
 fn create_table(conn: &Connection) -> Result<()> {
