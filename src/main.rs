@@ -36,9 +36,17 @@ struct Args {
     #[arg(short, long)]
     exclude_day: Option<String>,
 
+    /// Exclude the day shown as changing the target for daily goal calculation, must be used with status
+    #[arg(short, long)]
+    exclude_day_shown: bool,
+
     /// A week you want to exclude from the weekly goal calculation, should be date of Monday, in format YYYY-MM-DD
     #[arg(short, long)]
     exclude_week: Option<String>,
+
+    /// Exclude the week shown as changing the target for weekly goal calculation, must be used with status
+    #[arg(short, long)]
+    exclude_week_shown: bool,
 
     /// Purge all the current saved data, useful to delete the saved api key and any excluded days/weeks
     #[arg(short, long)]
@@ -62,6 +70,10 @@ async fn main() -> Result<(), reqwest::Error> {
     let today:NaiveDate = Local::now().naive_local().date();
 
     if args.status {
+        if args.update_goals && args.exclude_day_shown || args.update_goals && args.exclude_week_shown {
+            panic!("Cannot use --update-goals with either exclude shown commands");
+        }
+
         let stats = completed_fetch::get_completed_stats(&key).await;
 
         // Floating week progress
@@ -91,18 +103,28 @@ async fn main() -> Result<(), reqwest::Error> {
         let days : Vec<String> = days_result.unwrap().iter().map(|d| d.format("%Y-%m-%d").to_string()).collect();
 
         // Check whether to change daily goal
-        let min_daily = stats.days_items.iter()
+        let min_daily_option = stats.days_items.iter()
                 .filter(|x| x.date != today.format("%Y-%m-%d").to_string()) // Filter out today's date
                 .filter(|x| !days.contains(&x.date)) // Filter out any excluded days 
-                .min_by_key(|x| x.total_completed).unwrap();
-        if min_daily.total_completed == stats.goals.daily_goal {
-            println!("Daily goal is right!")
+                .min_by_key(|x| x.total_completed);
+        if min_daily_option.is_none() {
+            println!("All days excluded, just keep going!")
         }
         else {
-            println!("New daily goal should be {new}, from {day}", new = min_daily.total_completed, day = min_daily.date);
-            if args.update_goals {
-                update_goals::update_daily_goal(&key, &min_daily.total_completed).await;
-                println!("Updated daily goal to {new}", new = min_daily.total_completed);
+            let min_daily = min_daily_option.unwrap();
+            if min_daily.total_completed == stats.goals.daily_goal {
+                println!("Daily goal is right!")
+            }
+            else {
+                println!("New daily goal should be {new}, from {day}", new = min_daily.total_completed, day = min_daily.date);
+                if args.update_goals {
+                    update_goals::update_daily_goal(&key, &min_daily.total_completed).await;
+                    println!("Updated daily goal to {new}", new = min_daily.total_completed);
+                }
+                if args.exclude_day_shown {
+                    exclude_days::exclude_day(NaiveDate::parse_from_str(&min_daily.date, "%Y-%m-%d").expect("Date is in the wrong format")).expect("Failed to write excluded day");
+                    println!("Excluded day {day}", day = min_daily.date)
+                }
             }
         }
 
@@ -130,6 +152,10 @@ async fn main() -> Result<(), reqwest::Error> {
             if args.update_goals {
                 update_goals::update_weekly_goal(&key, &min_weekly.total_completed).await;
                 println!("Updated weekly goal to {new}", new = min_weekly.total_completed);
+            }
+            if args.exclude_week_shown {
+                exclude_weeks::exclude_week(NaiveDate::parse_from_str(&min_weekly.from, "%Y-%m-%d").expect("Date is in the wrong format")).expect("Failed to write excluded week");
+                println!("Excluded week from {day}", day = min_weekly.from)
             }
         }
     }
