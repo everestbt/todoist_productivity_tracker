@@ -9,10 +9,18 @@ pub struct Due {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct Duration {
+    pub amount: i32,
+    pub unit: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct Task {
     pub id: String,
     pub due: Due,
     pub content: String,
+    pub priority: i32,
+    pub duration: Option<Duration>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

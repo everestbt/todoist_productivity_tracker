@@ -28,6 +28,10 @@ struct Args {
     #[arg(short, long)]
     postpone: bool,
 
+    /// Postpone tasks assigned to today to tomorrow, leaving behind those with a specified time, any of higher priority, and then enough to meet the rolling weekly goal
+    #[arg(short, long)]
+    postpone_to_goal: bool,
+
     /// Bring overdue to today
     #[arg(short, long)]
     overdue: bool,
@@ -74,12 +78,10 @@ async fn main() -> Result<(), reqwest::Error> {
             panic!("Cannot use --update-goals with either exclude shown commands");
         }
 
-        let stats = completed_fetch::get_completed_stats(&key).await;
+        let stats: completed_fetch::CompletedStats = completed_fetch::get_completed_stats(&key).await;
 
         // Floating week progress
-        let sum_of_tasks: i32 = stats.days_items.iter()
-            .map(|x| x.total_completed)
-            .sum();
+        let sum_of_tasks: i32 = calculate_progress_on_floating_week(&stats);
 
         println!("Daily Progress: {done} / {goal}",
             done = stats.days_items.iter().find(|x| x.date == today.to_string()).unwrap().total_completed,
@@ -164,20 +166,42 @@ async fn main() -> Result<(), reqwest::Error> {
         let todays_tasks = filter_tasks::get_todays_tasks(&key).await;
         println!("Found {} tasks to move to tomorrow", todays_tasks.len());
         for t in todays_tasks.iter() {
-            // Update the date to tomorrow
-            // If it contains a time then need to preserve that
-            if t.due.date.contains("T") {
-                let due_date_time : NaiveDateTime = parse_due_date_time(&t.due.date);
-                let tomorrow = due_date_time.checked_add_days(Days::new(1)).unwrap();
-                update_task::update_task_due(&key, &t.id, tomorrow.format("%Y-%m-%dT%H:%M:%S").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
-                println!("Rescheduled {content} to {due}", content = t.content, due = tomorrow)
+            postpone_task_to_tomorrow(&key, &t).await;
+        }
+    }
+
+    if args.postpone_to_goal {
+        let todays_tasks: Vec<filter_tasks::Task> = filter_tasks::get_todays_tasks(&key).await;
+        let total_today_tasks = todays_tasks.len() as i32;
+        println!("Found {} tasks for today", total_today_tasks);
+        // Check if any need to be rescheduled
+        let stats: completed_fetch::CompletedStats = completed_fetch::get_completed_stats(&key).await;
+        let sum_of_tasks: i32 = calculate_progress_on_floating_week(&stats);
+        let remaining_tasks_for_week = stats.goals.weekly_goal - sum_of_tasks;
+        if remaining_tasks_for_week >= total_today_tasks {
+            println!("The number of tasks is below or equal to the number needed to complete your week so not rescheduling any");
+        }
+        else {
+            // Filter out any tasks that have a higher priority + have a time to be done
+            let filter_tasks: Vec<&filter_tasks::Task>  = todays_tasks.iter()
+                .filter(|t| t.priority == 1)
+                .filter(|t| t.duration.is_none())
+                .collect();
+            let low_priority_total = filter_tasks.len() as i32;
+            // If no needed remaining tasks for the week then just move all filtered tasks OR if the remaining tasks is satisfied by the higher priority items
+            if remaining_tasks_for_week <= 0 || remaining_tasks_for_week <= total_today_tasks - low_priority_total {
+                println!("Rescheduling all lower priority tasks");
+                for t in filter_tasks.iter() {
+                    postpone_task_to_tomorrow(&key, &t).await;
+                }
             }
-            // If it is only a date 
             else {
-                let due_date = NaiveDate::parse_from_str(&t.due.date.to_owned(), "%Y-%m-%d").unwrap();
-                let tomorrow = due_date.checked_add_days(Days::new(1)).unwrap();
-                update_task::update_task_due(&key, &t.id, tomorrow.format("%Y-%m-%d").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
-                println!("Rescheduled {content} to tomorrow", content = t.content)
+                // Calculate the max to reschedule and then take that number of first set of elements
+                let max_to_reschedule: usize = (remaining_tasks_for_week - (total_today_tasks - low_priority_total)) as usize;
+                println!("Rescheduling at most {num} lower priority tasks", num = max_to_reschedule);
+                for t in filter_tasks.iter().take(max_to_reschedule) {
+                    postpone_task_to_tomorrow(&key, &t).await;
+                }
             }
         }
     }
@@ -247,4 +271,28 @@ fn parse_due_date_time(due : &String) -> NaiveDateTime {
         due_date = NaiveDateTime::parse_from_str(&due.to_owned(), "%Y-%m-%dT%H:%M:%S").unwrap();
     }
     due_date
+}
+
+fn calculate_progress_on_floating_week(stats: &completed_fetch::CompletedStats) -> i32 {
+    stats.days_items.iter()
+            .map(|x| x.total_completed)
+            .sum()
+}
+
+async fn postpone_task_to_tomorrow(key: &String, t: &filter_tasks::Task) {
+    // Update the date to tomorrow
+    // If it contains a time then need to preserve that
+    if t.due.date.contains("T") {
+        let due_date_time : NaiveDateTime = parse_due_date_time(&t.due.date);
+        let tomorrow = due_date_time.checked_add_days(Days::new(1)).unwrap();
+        update_task::update_task_due(&key, &t.id, tomorrow.format("%Y-%m-%dT%H:%M:%S").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
+        println!("Rescheduled {content} to {due}", content = t.content, due = tomorrow)
+    }
+    // If it is only a date 
+    else {
+        let due_date = NaiveDate::parse_from_str(&t.due.date.to_owned(), "%Y-%m-%d").unwrap();
+        let tomorrow = due_date.checked_add_days(Days::new(1)).unwrap();
+        update_task::update_task_due(&key, &t.id, tomorrow.format("%Y-%m-%d").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
+        println!("Rescheduled {content} to tomorrow", content = t.content)
+    }
 }
