@@ -20,7 +20,7 @@ struct Args {
     #[arg(short, long)]
     status: bool,
 
-    /// Whether to update the goals, must be used with the status flag
+    /// Whether to update the goals, must be used with the status flag OR postpone-to-goal flag. When used with status it will be based off daily target achieved over last week, when used with postpone-to-goal it will set a goal based off what is needed to reach the weekly goal (or 1 if already achieved)
     #[arg(short, long)]
     update_goals: bool,
 
@@ -202,6 +202,20 @@ async fn main() -> Result<(), reqwest::Error> {
                 for t in filter_tasks.iter().take(max_to_reschedule) {
                     postpone_task_to_tomorrow(&key, &t).await;
                 }
+            }
+        }
+        if args.update_goals {
+            // Add on the number already achieved today
+            let today = stats.days_items.iter()
+                .find(|x| x.date == today.format("%Y-%m-%d").to_string()).expect("Today should always exist"); // Find today's date
+            let remaining_for_week_including_today = remaining_tasks_for_week + today.total_completed;
+            if remaining_for_week_including_today <=0 {
+                println!("At the target! Setting a goal of 1");
+                update_goals::update_daily_goal(&key, &1).await;
+            }
+            else {
+                println!("The number of tasks to aim for today is: {num}", num = remaining_for_week_including_today);
+                update_goals::update_daily_goal(&key, &remaining_for_week_including_today).await;
             }
         }
     }
