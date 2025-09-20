@@ -197,7 +197,7 @@ async fn main() -> Result<(), reqwest::Error> {
             }
             else {
                 // Calculate the max to reschedule and then take that number of first set of elements
-                let max_to_reschedule: usize = (remaining_tasks_for_week - (total_today_tasks - low_priority_total)) as usize;
+                let max_to_reschedule: usize = (total_today_tasks - remaining_tasks_for_week) as usize;
                 println!("Rescheduling at most {num} lower priority tasks", num = max_to_reschedule);
                 for t in filter_tasks.iter().take(max_to_reschedule) {
                     postpone_task_to_tomorrow(&key, &t).await;
