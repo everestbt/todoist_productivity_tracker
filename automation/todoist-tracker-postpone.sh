@@ -1,2 +1,2 @@
 #!/bin/bash
-todoist-tracker --postpone-to-goal --update-goals
+/Users/USER/.cargo/bin/todoist-tracker --postpone-to-goal --update-goals

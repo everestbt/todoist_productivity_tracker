@@ -13,5 +13,10 @@
             <key>Minute</key>
             <integer>0</integer>
         </dict>
+        <key>StandardErrorPath</key>
+        <string>/tmp/todoist-tracker.err</string>
+
+        <key>StandardOutPath</key>
+        <string>/tmp/todoist-tracker.out</string>
     </dict>
 </plist>
