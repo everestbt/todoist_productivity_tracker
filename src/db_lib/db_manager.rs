@@ -2,7 +2,7 @@ use rusqlite::{Connection};
 use directories::{ProjectDirs};
 use std::fs;
 
-static DATABASE_NAME: &'static str = "todoist_productivity_tracker_database.db";
+static DATABASE_NAME: &str = "todoist_productivity_tracker_database.db";
 
 pub fn get_connection() -> Connection {
     let binding = ProjectDirs::from("com", "everest", "todoist_productivity_tracker")
@@ -13,5 +13,5 @@ pub fn get_connection() -> Connection {
     }
     let path = data_dir.join(DATABASE_NAME);
     let conn: Connection = Connection::open(path).expect("Failed to open a connection");
-    return conn;
+    conn
 }

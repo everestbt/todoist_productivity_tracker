@@ -8,13 +8,13 @@ pub enum ProductivityMode {
 
 pub fn calculate_mode(sum_of_tasks: i32, weekly_goal: i32, daily_goal: i32, done_today: i32) -> ProductivityMode {
     if sum_of_tasks >= weekly_goal {
-        return ProductivityMode::Meaningful
+        ProductivityMode::Meaningful
     }
-    if (sum_of_tasks-done_today) < (weekly_goal - daily_goal) {
-        return ProductivityMode::Chores
+    else if (sum_of_tasks-done_today) < (weekly_goal - daily_goal) {
+        ProductivityMode::Chores
     }
     else {
-        return ProductivityMode::Meaningful
+        ProductivityMode::Meaningful
     }
 }
 

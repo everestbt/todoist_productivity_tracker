@@ -26,24 +26,22 @@ pub struct CompletedStats {
     pub goals: Goals,
 }
 
-pub async fn get_completed_stats(key : &String) -> CompletedStats {
+pub async fn get_completed_stats(key : &str) -> CompletedStats {
     let req: Result<reqwest::Response, reqwest::Error> = reqwest::Client::new()
         .get("https://api.todoist.com/api/v1/tasks/completed/stats")
-        .header("Authorization", "Bearer ".to_owned() + &key)
+        .header("Authorization", "Bearer ".to_owned() + key)
         .send()
         .await;
 
-    match req.is_err() {
-        true => panic!(),
-        false => (),
+    if req.is_err() {
+        panic!()
     }
     let response: Result<CompletedStats, reqwest::Error> = req.unwrap()
         .json()
         .await;
 
-    match response.is_err() {
-        true => panic!(),
-        false => (),
+    if response.is_err() {
+        panic!()
     }
 
     response.unwrap()

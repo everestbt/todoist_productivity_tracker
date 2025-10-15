@@ -74,7 +74,7 @@ async fn main() -> Result<(), reqwest::Error> {
     let today:NaiveDate = Local::now().naive_local().date();
 
     if args.status {
-        if args.update_goals && args.exclude_day_shown || args.update_goals && args.exclude_week_shown {
+        if args.update_goals && (args.exclude_day_shown || args.exclude_week_shown) {
             panic!("Cannot use --update-goals with either exclude shown commands");
         }
 
@@ -94,13 +94,12 @@ async fn main() -> Result<(), reqwest::Error> {
         // Check what mode you should be operating in
         let done_today = stats.days_items.iter().find(|x| x.date == today.format("%Y-%m-%d").to_string()).unwrap();
         let mode = productivity_mode::calculate_mode(sum_of_tasks, stats.goals.weekly_goal, stats.goals.daily_goal, done_today.total_completed);
-        println!("Mode: {mode}!", mode = mode.to_string());
+        println!("Mode: {mode}!", mode = mode);
 
         // Load any days to exclude from daily goal calculation
         let days_result = exclude_days::get_excluded_days();
-        match days_result.is_err() {
-            true => panic!(),
-            false => (),
+        if days_result.is_err() {
+            panic!()
         }
         let days : Vec<String> = days_result.unwrap().iter().map(|d| d.format("%Y-%m-%d").to_string()).collect();
 
@@ -135,9 +134,8 @@ async fn main() -> Result<(), reqwest::Error> {
 
         // Load any weeks to filter out from weekly goal calculation
         let weeks_result = exclude_weeks::get_excluded_weeks();
-        match weeks_result.is_err() {
-            true => panic!(),
-            false => (),
+        if weeks_result.is_err() {
+            panic!()
         }
         let weeks : Vec<String> = weeks_result.unwrap().iter().map(|d| d.format("%Y-%m-%d").to_string()).collect();
 
@@ -166,7 +164,7 @@ async fn main() -> Result<(), reqwest::Error> {
         let todays_tasks = filter_tasks::get_todays_tasks(&key).await;
         println!("Found {} tasks to move to tomorrow", todays_tasks.len());
         for t in todays_tasks.iter() {
-            postpone_task_to_tomorrow(&key, &t).await;
+            postpone_task_to_tomorrow(&key, t).await;
         }
     }
 
@@ -195,7 +193,7 @@ async fn main() -> Result<(), reqwest::Error> {
             if remaining_tasks_for_week <= 0 || remaining_tasks_for_week <= total_today_tasks - low_priority_total {
                 println!("Rescheduling all lower priority tasks");
                 for t in filter_tasks.iter() {
-                    postpone_task_to_tomorrow(&key, &t).await;
+                    postpone_task_to_tomorrow(&key, t).await;
                 }
             }
             else {
@@ -203,7 +201,7 @@ async fn main() -> Result<(), reqwest::Error> {
                 let max_to_reschedule: usize = (total_today_tasks - remaining_tasks_for_week) as usize;
                 println!("Rescheduling at most {num} lower priority tasks", num = max_to_reschedule);
                 for t in filter_tasks.iter().take(max_to_reschedule) {
-                    postpone_task_to_tomorrow(&key, &t).await;
+                    postpone_task_to_tomorrow(&key, t).await;
                 }
             }
         }
@@ -230,9 +228,8 @@ async fn main() -> Result<(), reqwest::Error> {
     if args.exclude_day.is_some() {
         let day = NaiveDate::parse_from_str(&args.exclude_day.unwrap().to_owned(), "%Y-%m-%d").unwrap();
         let result = exclude_days::exclude_day(day);
-        match result.is_err() {
-            true => panic!(),
-            false => (),
+        if result.is_err() {
+            panic!()
         }
         println!("Excluded day {day}", day = day)
     }
@@ -245,9 +242,8 @@ async fn main() -> Result<(), reqwest::Error> {
         }
         else {
             let result = exclude_weeks::exclude_week(day);
-            match result.is_err() {
-                true => panic!(),
-                false => (),
+            if result.is_err() {
+                panic!()
             }
             println!("Excluded week from {day}", day = day)
         }
@@ -263,13 +259,13 @@ async fn main() -> Result<(), reqwest::Error> {
 }
 
 fn parse_due_date_time(due : &String) -> NaiveDateTime {
-    let due_date : NaiveDateTime;
+    let due_date : NaiveDateTime = 
     if due.contains("Z") {
-        due_date = NaiveDateTime::parse_from_str(&due.to_owned(), "%Y-%m-%dT%H:%M:%SZ").unwrap();
+        NaiveDateTime::parse_from_str(&due.to_owned(), "%Y-%m-%dT%H:%M:%SZ").unwrap()
     }
     else {
-        due_date = NaiveDateTime::parse_from_str(&due.to_owned(), "%Y-%m-%dT%H:%M:%S").unwrap();
-    }
+        NaiveDateTime::parse_from_str(&due.to_owned(), "%Y-%m-%dT%H:%M:%S").unwrap()
+    };
     due_date
 }
 
@@ -279,25 +275,25 @@ fn calculate_progress_on_floating_week(stats: &completed_fetch::CompletedStats) 
             .sum()
 }
 
-async fn postpone_task_to_tomorrow(key: &String, t: &filter_tasks::Task) {
+async fn postpone_task_to_tomorrow(key: &str, t: &filter_tasks::Task) {
     // Update the date to tomorrow
     // If it contains a time then need to preserve that
     if t.due.date.contains("T") {
         let due_date_time : NaiveDateTime = parse_due_date_time(&t.due.date);
         let tomorrow = due_date_time.checked_add_days(Days::new(1)).unwrap();
-        update_task::update_task_due(&key, &t.id, tomorrow.format("%Y-%m-%dT%H:%M:%S").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
+        update_task::update_task_due(key, &t.id, tomorrow.format("%Y-%m-%dT%H:%M:%S").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
         println!("Rescheduled {content} to {due}", content = t.content, due = tomorrow)
     }
     // If it is only a date 
     else {
         let due_date = NaiveDate::parse_from_str(&t.due.date.to_owned(), "%Y-%m-%d").unwrap();
         let tomorrow = due_date.checked_add_days(Days::new(1)).unwrap();
-        update_task::update_task_due(&key, &t.id, tomorrow.format("%Y-%m-%d").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
+        update_task::update_task_due(key, &t.id, tomorrow.format("%Y-%m-%d").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
         println!("Rescheduled {content} to tomorrow", content = t.content)
     }
 }
 
-async fn overdue(key: &String) {
+async fn overdue(key: &str) {
     let today:NaiveDate = Local::now().naive_local().date();
     let overdue_tasks = filter_tasks::get_overdue_tasks(key).await;
     println!("Found {} tasks to move to today", overdue_tasks.len());

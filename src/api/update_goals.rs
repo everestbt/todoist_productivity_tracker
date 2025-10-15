@@ -20,7 +20,7 @@ struct DailyRequest {
     commands: Vec<DailyCommand>,
 }
 
-pub async fn update_daily_goal(key : &String, 
+pub async fn update_daily_goal(key : &str, 
                                 daily_goal: &i32) {
     // Make up the json payload
     let payload = DailyRequest{
@@ -37,13 +37,12 @@ pub async fn update_daily_goal(key : &String,
     
     let req: Result<reqwest::Response, reqwest::Error> = reqwest::Client::new()
         .post("https://api.todoist.com/api/v1/sync")
-        .header("Authorization", "Bearer ".to_owned() + &key)
+        .header("Authorization", "Bearer ".to_owned() + key)
         .json(&payload)
         .send()
         .await;
-    match req.is_err() {
-        true => panic!(),
-        false => (),
+    if req.is_err() {
+        panic!()
     }
 }
 
@@ -66,7 +65,7 @@ struct WeeklyRequest {
     commands: Vec<WeeklyCommand>,
 }
 
-pub async fn update_weekly_goal(key : &String, 
+pub async fn update_weekly_goal(key : &str, 
                                 weekly_goal: &i32) {
     // Make up the json payload
     let payload = WeeklyRequest{
@@ -83,12 +82,11 @@ pub async fn update_weekly_goal(key : &String,
     
     let req: Result<reqwest::Response, reqwest::Error> = reqwest::Client::new()
         .post("https://api.todoist.com/api/v1/sync")
-        .header("Authorization", "Bearer ".to_owned() + &key)
+        .header("Authorization", "Bearer ".to_owned() + key)
         .json(&payload)
         .send()
         .await;
-    match req.is_err() {
-        true => panic!(),
-        false => (),
+    if req.is_err() {
+        panic!()
     }
 }
