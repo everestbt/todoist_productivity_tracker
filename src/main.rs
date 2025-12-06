@@ -7,6 +7,7 @@ use db::{exclude_days, exclude_weeks, key_store};
 use chrono::{Datelike, Days, Local, NaiveDate, NaiveDateTime, Weekday};
 use clap::Parser;
 use std::string::ToString;
+use std::cmp;
 
 // Command line arguments
 #[derive(Parser, Debug)]
@@ -20,7 +21,7 @@ struct Args {
     #[arg(short, long)]
     status: bool,
 
-    /// Whether to update the goals, must be used with the status flag OR postpone-to-goal flag. When used with status it will be based off daily target achieved over last week, when used with postpone-to-goal it will set a goal based off what is needed to reach the weekly goal (or 1 if already achieved)
+    /// Whether to update the goals, must be used with the status flag OR postpone-to-goal flag. When used with status it will be based off daily target achieved over last week. When used with postpone-to-goal it will set a goal based off what is needed to reach the weekly goal (or 1 if already achieved), with a maximum of 2* the daily required to meet the weekly goal to avoid over subsribed days following breaks.
     #[arg(short, long)]
     update_goals: bool,
 
@@ -159,16 +160,14 @@ async fn main() -> Result<(), reqwest::Error> {
             }
         }
     }
-
-    if args.postpone {
+    else if args.postpone {
         let todays_tasks = filter_tasks::get_todays_tasks(&key).await;
         println!("Found {} tasks to move to tomorrow", todays_tasks.len());
         for t in todays_tasks.iter() {
             postpone_task_to_tomorrow(&key, t).await;
         }
     }
-
-    if args.postpone_to_goal {
+    else if args.postpone_to_goal {
         // First reshedule all overdue tasks
         overdue(&key).await;
         // Get today tasks
@@ -178,7 +177,8 @@ async fn main() -> Result<(), reqwest::Error> {
         // Check if any need to be rescheduled
         let stats: completed_fetch::CompletedStats = completed_fetch::get_completed_stats(&key).await;
         let sum_of_tasks: i32 = calculate_progress_on_floating_week(&stats);
-        let remaining_tasks_for_week = stats.goals.weekly_goal - sum_of_tasks;
+        // Take remaining tasks for week or maximum 2* daily required to meet weekly goal to avoid over logging days
+        let remaining_tasks_for_week = cmp::min(stats.goals.weekly_goal - sum_of_tasks, 2* stats.goals.weekly_goal/7);
         if remaining_tasks_for_week >= total_today_tasks {
             println!("The number of tasks is below or equal to the number needed to complete your week so not rescheduling any");
         }
@@ -220,12 +220,10 @@ async fn main() -> Result<(), reqwest::Error> {
             }
         }
     }
-
-    if args.overdue {
+    else if args.overdue {
         overdue(&key).await;
     }
-
-    if args.exclude_day.is_some() {
+    else if args.exclude_day.is_some() {
         let day = NaiveDate::parse_from_str(&args.exclude_day.unwrap().to_owned(), "%Y-%m-%d").unwrap();
         let result = exclude_days::exclude_day(day);
         if result.is_err() {
@@ -233,8 +231,7 @@ async fn main() -> Result<(), reqwest::Error> {
         }
         println!("Excluded day {day}", day = day)
     }
-
-    if args.exclude_week.is_some() {
+    else if args.exclude_week.is_some() {
         let day = NaiveDate::parse_from_str(&args.exclude_week.unwrap().to_owned(), "%Y-%m-%d").unwrap();
         // Check that the day is a Monday
         if day.weekday() != Weekday::Mon {
@@ -248,8 +245,7 @@ async fn main() -> Result<(), reqwest::Error> {
             println!("Excluded week from {day}", day = day)
         }
     }
-
-    if args.purge {
+    else if args.purge {
         key_store::purge().expect("Failed to purge key store");
         exclude_days::purge().expect("Failed to exclude days store");
         exclude_weeks::purge().expect("Failed to exclude weeks store");
