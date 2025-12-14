@@ -16,7 +16,7 @@ cargo install --path .
 
 ## Usage
 
-Once installedthe you can use:
+Once installed then you can use:
 
 ```bash
 todoist-tracker --help

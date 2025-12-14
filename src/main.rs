@@ -26,12 +26,16 @@ struct Args {
     update_goals: bool,
 
     /// Postpone tasks assigned to today to tomorrow
-    #[arg(short, long)]
+    #[arg(long)]
     postpone: bool,
 
     /// Postpone tasks assigned to today to tomorrow, leaving behind those with a specified time, any of higher priority, and then enough to meet the rolling weekly goal. Overdue tasks are also moved forward.
-    #[arg(short, long)]
+    #[arg(long)]
     postpone_to_goal: bool,
+
+    /// Postpone all low priority tomorrow tasks by a number of days.
+    #[arg(long)]
+    postpone_by_days: Option<i8>,
 
     /// Bring overdue to today
     #[arg(short, long)]
@@ -220,6 +224,18 @@ async fn main() -> Result<(), reqwest::Error> {
             }
         }
     }
+    else if args.postpone_by_days.is_some() {
+        // Get all tasks due tomorrow
+        let todays_tasks: Vec<filter_tasks::Task> = filter_tasks::get_tomorrow_tasks(&key).await;
+        // Filter to low priority tasks
+        let filter_tasks: Vec<&filter_tasks::Task>  = todays_tasks.iter()
+                .filter(|t| t.priority == 1)
+                .filter(|t| t.duration.is_none())
+                .collect();
+        for t in filter_tasks.iter() {
+            postpone_task_by_days(&key, t, args.postpone_by_days.unwrap()).await;
+        }
+    }
     else if args.overdue {
         overdue(&key).await;
     }
@@ -272,20 +288,23 @@ fn calculate_progress_on_floating_week(stats: &completed_fetch::CompletedStats) 
 }
 
 async fn postpone_task_to_tomorrow(key: &str, t: &filter_tasks::Task) {
-    // Update the date to tomorrow
+    postpone_task_by_days(key, t, 1).await;
+}
+
+async fn postpone_task_by_days(key: &str, t: &filter_tasks::Task, days: i8) {
     // If it contains a time then need to preserve that
     if t.due.date.contains("T") {
         let due_date_time : NaiveDateTime = parse_due_date_time(&t.due.date);
-        let tomorrow = due_date_time.checked_add_days(Days::new(1)).unwrap();
-        update_task::update_task_due(key, &t.id, tomorrow.format("%Y-%m-%dT%H:%M:%S").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
-        println!("Rescheduled {content} to {due}", content = t.content, due = tomorrow)
+        let new_due_date = due_date_time.checked_add_days(Days::new(days as u64)).unwrap();
+        update_task::update_task_due(key, &t.id, new_due_date.format("%Y-%m-%dT%H:%M:%S").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
+        println!("Rescheduled {content} to {due}", content = t.content, due = new_due_date)
     }
     // If it is only a date 
     else {
         let due_date = NaiveDate::parse_from_str(&t.due.date.to_owned(), "%Y-%m-%d").unwrap();
-        let tomorrow = due_date.checked_add_days(Days::new(1)).unwrap();
-        update_task::update_task_due(key, &t.id, tomorrow.format("%Y-%m-%d").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
-        println!("Rescheduled {content} to tomorrow", content = t.content)
+        let new_due_date = due_date.checked_add_days(Days::new(days as u64)).unwrap();
+        update_task::update_task_due(key, &t.id, new_due_date.format("%Y-%m-%d").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
+        println!("Rescheduled {content} to {due}", content = t.content, due = new_due_date)
     }
 }
 

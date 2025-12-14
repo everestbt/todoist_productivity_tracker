@@ -6,6 +6,16 @@ GET https://api.todoist.com/api/v1/tasks/completed/stats
 Authorization: Bearer {{todoistApiKey}}
 Content-type: application/json
 
+### Sync call
+POST https://api.todoist.com/api/v1/sync
+Authorization: Bearer {{todoistApiKey}}
+Content-type: application/json
+
+{
+    "sync_token": "*",
+    "resource_types": "[\"filters\"]"
+}
+
 ### Tasks call
 GET https://api.todoist.com/api/v1/tasks?limit=200
 Authorization: Bearer {{todoistApiKey}}
@@ -17,6 +27,10 @@ Authorization: Bearer {{todoistApiKey}}
 
 ### Filter call - overdue
 GET https://api.todoist.com/api/v1/tasks/filter?query=overdue&limit=200
+Authorization: Bearer {{todoistApiKey}}
+
+### Filter call - tomorrow
+GET https://api.todoist.com/api/v1/tasks/filter?query=tomorrow&limit=200
 Authorization: Bearer {{todoistApiKey}}
 
 ### Update a single task to tomorrow
