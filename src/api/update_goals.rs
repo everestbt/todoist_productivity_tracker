@@ -42,7 +42,8 @@ pub async fn update_daily_goal(key : &str,
         .send()
         .await;
     if req.is_err() {
-        panic!()
+        log::error!("Failed to send the request for updating the daily goal: {}", req.err().unwrap());
+        panic!("Failed to send the request for updating the daily goal")
     }
 }
 
@@ -87,6 +88,7 @@ pub async fn update_weekly_goal(key : &str,
         .send()
         .await;
     if req.is_err() {
-        panic!()
+        log::error!("Failed to send the request for updating the weekly goal: {}", req.err().unwrap());
+        panic!("Failed to send the request for updating the weekly goal")
     }
 }

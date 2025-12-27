@@ -22,6 +22,7 @@ pub async fn update_task_due(   key : &str,
         .send()
         .await;
     if req.is_err() {
-        panic!()
+        log::error!("Failed to send the request for updating the task due date: {}", req.err().unwrap());
+        panic!("Failed to send the request for updating the task due date")
     }
 }

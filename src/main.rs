@@ -42,30 +42,37 @@ struct Args {
     overdue: bool,
 
     /// A day you want to exclude from the daily goal calculation, in format YYYY-MM-DD
-    #[arg(short, long)]
+    #[arg(long)]
     exclude_day: Option<String>,
 
     /// Exclude the day shown as changing the target for daily goal calculation, must be used with status
-    #[arg(short, long)]
+    #[arg(long)]
     exclude_day_shown: bool,
 
     /// A week you want to exclude from the weekly goal calculation, should be date of Monday, in format YYYY-MM-DD
-    #[arg(short, long)]
+    #[arg(long)]
     exclude_week: Option<String>,
 
     /// Exclude the week shown as changing the target for weekly goal calculation, must be used with status
-    #[arg(short, long)]
+    #[arg(long)]
     exclude_week_shown: bool,
 
     /// Purge all the current saved data, useful to delete the saved api key and any excluded days/weeks
-    #[arg(short, long)]
+    #[arg(long)]
     purge: bool,
+
+    /// Sets the verobosity of the logs to output
+    #[command(flatten)]
+    verbosity: clap_verbosity_flag::Verbosity,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), reqwest::Error> {
     let args = Args::parse();
-
+    env_logger::Builder::new()
+        .filter_level(args.verbosity.into())
+        .init();
+    
     let key: String;
     if args.key.is_some() {
         key = args.key.unwrap();

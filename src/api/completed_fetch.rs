@@ -34,15 +34,18 @@ pub async fn get_completed_stats(key : &str) -> CompletedStats {
         .await;
 
     if req.is_err() {
-        panic!()
+        log::error!("Failed to send the request for stats: {}", req.err().unwrap());
+        panic!("Failed to send the request for stats")
     }
     let response: Result<CompletedStats, reqwest::Error> = req.unwrap()
         .json()
         .await;
 
     if response.is_err() {
-        panic!()
+        log::error!("Failed to get a response for stats: {}", response.err().unwrap());
+        panic!("Failed to get a response for stats")
     }
+    log::trace!("Successfully read completed stats");
 
     response.unwrap()
 }

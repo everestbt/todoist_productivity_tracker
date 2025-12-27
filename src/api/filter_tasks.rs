@@ -36,14 +36,16 @@ pub async fn get_todays_tasks(key : &str) -> Vec<Task> {
         .await;
 
     if req.is_err() {
-        panic!()
+        log::error!("Failed to send the request for today tasks: {}", req.err().unwrap());
+        panic!("Failed to send the request for today tasks")
     }
     let response: Result<Response, reqwest::Error> = req.unwrap()
         .json()
         .await;
 
     if response.is_err() {
-        panic!("{}",response.unwrap_err().to_string());
+        log::error!("Failed to get a response for today tasks: {}", response.unwrap_err());
+        panic!("Failed to get a response for today tasks");
     }
 
     response.unwrap().results
@@ -56,14 +58,16 @@ pub async fn get_overdue_tasks(key : &str) -> Vec<Task> {
         .send()
         .await;
     if req.is_err() {
-        panic!();
+        log::error!("Failed to send the request for overdue tasks: {}", req.err().unwrap());
+        panic!("Failed to send the request for overdue tasks")
     }
 
     let response: Result<Response, reqwest::Error> = req.unwrap()
         .json()
         .await;
     if response.is_err() {
-        panic!("{}",response.unwrap_err().to_string());
+        log::error!("Failed to get a response for overdue tasks: {}", response.unwrap_err());
+        panic!("Failed to get a response for overdue tasks");
     }
 
     response.unwrap().results
@@ -77,14 +81,16 @@ pub async fn get_tomorrow_tasks(key : &str) -> Vec<Task> {
         .await;
 
     if req.is_err() {
-        panic!()
+        log::error!("Failed to send the request for tomorrow tasks: {}", req.err().unwrap());
+        panic!("Failed to send the request for tomorrow tasks")
     }
     let response: Result<Response, reqwest::Error> = req.unwrap()
         .json()
         .await;
 
     if response.is_err() {
-        panic!("{}",response.unwrap_err().to_string());
+        log::error!("Failed to get a response for tomorrow tasks: {}", response.unwrap_err());
+        panic!("Failed to get a response for tomorrow tasks");
     }
 
     response.unwrap().results
