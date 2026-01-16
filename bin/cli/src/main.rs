@@ -1,5 +1,3 @@
-mod api;
-mod db;
 mod productivity_mode;
 
 use api::{completed_fetch, filter_tasks, update_task, update_goals};

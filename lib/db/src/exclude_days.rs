@@ -1,7 +1,7 @@
 use chrono::{Days, Local, NaiveDate};
 use rusqlite::{params, Connection, Result};
 
-use todoist_productivity_tracker::db_lib::db_manager;
+use db_lib::db_manager;
 
 struct ExcludedDay {
     id: i32,

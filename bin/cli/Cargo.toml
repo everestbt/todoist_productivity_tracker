@@ -1,0 +1,20 @@
+[package]
+name = "cli"
+version = "0.0.0"
+edition = "2021"
+description = "The CLI for todoist tracker"
+
+[dependencies]
+api.workspace=true
+db.workspace=true
+chrono.workspace=true
+clap.workspace=true
+reqwest.workspace=true
+clap-verbosity-flag.workspace=true
+tokio.workspace=true
+env_logger.workspace=true
+strum.workspace=true
+
+[[bin]]
+path = "src/main.rs"
+name = "todoist-tracker"

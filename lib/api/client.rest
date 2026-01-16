@@ -1,12 +1,11 @@
-@todoistApiKey=<KEY>
-@taskId=<TASK ID>
-
 ### Stats call
+# @prompt todoistApiKey
 GET https://api.todoist.com/api/v1/tasks/completed/stats
 Authorization: Bearer {{todoistApiKey}}
 Content-type: application/json
 
 ### Sync call
+# @prompt todoistApiKey
 POST https://api.todoist.com/api/v1/sync
 Authorization: Bearer {{todoistApiKey}}
 Content-type: application/json
@@ -17,23 +16,29 @@ Content-type: application/json
 }
 
 ### Tasks call
+# @prompt todoistApiKey
 GET https://api.todoist.com/api/v1/tasks?limit=200
 Authorization: Bearer {{todoistApiKey}}
 Content-type: application/json
 
 ### Filter call - today
+# @prompt todoistApiKey
 GET https://api.todoist.com/api/v1/tasks/filter?query=today&limit=200
 Authorization: Bearer {{todoistApiKey}}
 
 ### Filter call - overdue
+# @prompt todoistApiKey
 GET https://api.todoist.com/api/v1/tasks/filter?query=overdue&limit=200
 Authorization: Bearer {{todoistApiKey}}
 
 ### Filter call - tomorrow
+# @prompt todoistApiKey
 GET https://api.todoist.com/api/v1/tasks/filter?query=tomorrow&limit=200
 Authorization: Bearer {{todoistApiKey}}
 
-### Update a single task to tomorrow
+### Update a single task to date
+# @prompt todoistApiKey
+# @prompt taskId
 POST https://api.todoist.com/api/v1/tasks/{{taskId}}
 Authorization: Bearer {{todoistApiKey}}
 Content-Type:  application/json
@@ -45,6 +50,7 @@ Content-Type:  application/json
 }
 
 ### Update the daily goal
+# @prompt todoistApiKey
 POST https://api.todoist.com/api/v1/sync
 Authorization: Bearer {{todoistApiKey}}
 Content-Type:  application/json
