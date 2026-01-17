@@ -16,6 +16,7 @@ every Monday at 1am. This will update the weekly goal automatically. It does thi
 
 To activate these follow these steps:
 1. Replace in and `.plist` and `.sh` files `USER` with your username
+1. Update the environment variable set to either be your key (low security) or be retrieved from a password manager, the existing ones use 1password.
 1. Copy `.sh` files to `~Scripts/`
 1. Make the shell scripts executable using `chmod 755`
 1. Copy `.plist` files to `~/Library/LaunchAgents/`

@@ -10,6 +10,7 @@ resolver = "2"
 [workspace.dependencies]
 # local crates - bin
 cli = {path = "./bin/cli", version = "0.0.0"}
+migrations = {path = "./bin/migrations", version = "0.0.0"}
 # local crates - libs
 api = {path = "./lib/api", version = "0.0.0"}
 db = {path = "./lib/db", version = "0.0.0"}

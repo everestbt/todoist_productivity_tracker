@@ -1,11 +1,12 @@
 mod productivity_mode;
 
 use api::{completed_fetch, filter_tasks, update_task, update_goals};
-use db::{exclude_days, exclude_weeks, key_store};
+use db::{exclude_days, exclude_weeks};
 use chrono::{Datelike, Days, Local, NaiveDate, NaiveDateTime, Weekday};
 use clap::Parser;
 use std::string::ToString;
 use std::cmp;
+use std::env;
 
 // Command line arguments
 #[derive(Parser, Debug)]
@@ -71,15 +72,11 @@ async fn main() -> Result<(), reqwest::Error> {
         .filter_level(args.verbosity.into())
         .init();
     
-    let key: String;
-    if args.key.is_some() {
-        key = args.key.unwrap();
-        key_store::save_key(&key).expect("Failed to save the key");
-        println!("Saved your key, no need to use --key each time now. You can replace it by using --key again.")
+    let key_var = env::var("TODOIST_API_KEY");
+    if key_var.is_err() {
+        panic!("You need to set the environment variable TODOIST_API_KEY with your API key")
     }
-    else {
-        key = key_store::get_key().expect("Failed to load a key, use --key first");
-    }
+    let key = key_var.unwrap();
 
     let today:NaiveDate = Local::now().naive_local().date();
 
@@ -267,7 +264,6 @@ async fn main() -> Result<(), reqwest::Error> {
         }
     }
     else if args.purge {
-        key_store::purge().expect("Failed to purge key store");
         exclude_days::purge().expect("Failed to exclude days store");
         exclude_weeks::purge().expect("Failed to exclude weeks store");
     }
