@@ -12,10 +12,6 @@ use std::env;
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
 struct Args {
-    /// The API key for Todoist, only needs to be used once, and can be used to replace saved key
-    #[arg(short, long)]
-    key: Option<String>,
-
     /// Whether to return a status update
     #[arg(short, long)]
     status: bool,
