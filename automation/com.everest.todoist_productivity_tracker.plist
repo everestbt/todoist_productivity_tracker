@@ -5,7 +5,7 @@
         <key>Label</key>
         <string>todoist-tracker-postpone-to-goal</string>
         <key>Program</key>
-        <string>/Users/USER/Scripts/todoist-tracker-postpone.sh</string>
+        <string>/Users/<USER>/Scripts/todoist-tracker-postpone.sh</string>
         <key>StartCalendarInterval</key>
         <dict>
             <key>Hour</key>

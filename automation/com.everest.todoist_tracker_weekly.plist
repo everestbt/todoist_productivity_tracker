@@ -5,7 +5,7 @@
         <key>Label</key>
         <string>todoist-tracker-weekly-update</string>
         <key>Program</key>
-        <string>/Users/USER/Scripts/todoist-tracker-weekly-goal-update.sh</string>
+        <string>/Users/<USER>/Scripts/todoist-tracker-weekly-goal-update.sh</string>
         <key>StartCalendarInterval</key>
         <dict>
             <key>Weekday</key>
