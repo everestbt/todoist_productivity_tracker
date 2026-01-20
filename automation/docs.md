@@ -23,3 +23,6 @@ To activate these follow these steps:
 1. Load each job doing: `launchctl load ~/Library/LaunchAgents/com.everest.todoist_productivity_tracker.plist` as an example
 
 If any issues are encountered check `/tmp/todoist-tracker.err`.
+
+These scripts can also be used in other script automations, such as Mac shortcuts.
+In Mac shortcuts you just use a `Run Shell Script` and include one or both shell scripts.
