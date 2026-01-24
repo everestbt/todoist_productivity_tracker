@@ -16,7 +16,7 @@ struct Args {
     #[arg(short, long)]
     status: bool,
 
-    /// Whether to update the goals, must be used with the status flag OR postpone-to-goal flag. When used with status it will be based off daily target achieved over last week. When used with postpone-to-goal it will set a goal based off what is needed to reach the weekly goal (or 1 if already achieved), with a maximum of 2* the daily required to meet the weekly goal to avoid over subsribed days following breaks.
+    /// Whether to update the goals, must be used with the status flag OR postpone-to-goal flag. When used with status it will be based off daily target achieved over last week. When used with postpone-to-goal it will set a goal based off what is needed to reach the weekly goal (or 1 if already achieved), with a maximum of the daily average required to meet the weekly goal to avoid over subsribed days following breaks.
     #[arg(short, long)]
     update_goals: bool,
 
@@ -180,7 +180,7 @@ async fn main() -> Result<(), reqwest::Error> {
         let stats: completed_fetch::CompletedStats = completed_fetch::get_completed_stats(&key).await;
         let sum_of_tasks: i32 = calculate_progress_on_floating_week(&stats);
         // Take remaining tasks for week or maximum 2* daily required to meet weekly goal to avoid over logging days
-        let remaining_tasks_for_week = cmp::min(stats.goals.weekly_goal - sum_of_tasks, 2* stats.goals.weekly_goal/7);
+        let remaining_tasks_for_week = cmp::min(stats.goals.weekly_goal - sum_of_tasks, stats.goals.weekly_goal/7);
         if remaining_tasks_for_week >= total_today_tasks {
             println!("The number of tasks is below or equal to the number needed to complete your week so not rescheduling any");
         }
