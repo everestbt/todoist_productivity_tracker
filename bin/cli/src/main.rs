@@ -179,7 +179,7 @@ async fn main() -> Result<(), reqwest::Error> {
         // Check if any need to be rescheduled
         let stats: completed_fetch::CompletedStats = completed_fetch::get_completed_stats(&key).await;
         let sum_of_tasks: i32 = calculate_progress_on_floating_week(&stats);
-        // Take remaining tasks for week or maximum 2* daily required to meet weekly goal to avoid over logging days
+        // Take remaining tasks for week or maximum daily required to meet weekly goal to avoid over clogging days
         let remaining_tasks_for_week = cmp::min(stats.goals.weekly_goal - sum_of_tasks, stats.goals.weekly_goal/7);
         if remaining_tasks_for_week >= total_today_tasks {
             println!("The number of tasks is below or equal to the number needed to complete your week so not rescheduling any");
@@ -211,7 +211,8 @@ async fn main() -> Result<(), reqwest::Error> {
             // Add on the number already achieved today
             let today = stats.days_items.iter()
                 .find(|x| x.date == today.format("%Y-%m-%d").to_string()).expect("Today should always exist"); // Find today's date
-            let remaining_for_week_including_today = remaining_tasks_for_week + today.total_completed;
+            // Take remaining for week + today OR maximum daily required to meet weekly goal to avoid over clogging days
+            let remaining_for_week_including_today = cmp::min(remaining_tasks_for_week + today.total_completed, stats.goals.weekly_goal/7);
             if remaining_for_week_including_today <=0 {
                 println!("At the target! Setting a goal of 1");
                 update_goals::update_daily_goal(&key, &1).await;
