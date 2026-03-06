@@ -194,16 +194,30 @@ async fn main() -> Result<(), reqwest::Error> {
             // If no needed remaining tasks for the week then just move all filtered tasks OR if the remaining tasks is satisfied by the higher priority items
             if remaining_tasks_for_week <= 0 || remaining_tasks_for_week <= total_today_tasks - low_priority_total {
                 println!("Rescheduling all lower priority tasks");
+                let mut days = 1;
+                let mut count = 0;
                 for t in filter_tasks.iter() {
-                    postpone_task_to_tomorrow(&key, t).await;
+                    postpone_task_by_days(&key, t, days).await;
+                    count += 1;
+                    if count >= remaining_tasks_for_week {
+                        days += 1;
+                        count = 0
+                    }
                 }
             }
             else {
                 // Calculate the max to reschedule and then take that number of first set of elements
                 let max_to_reschedule: usize = (total_today_tasks - remaining_tasks_for_week) as usize;
                 println!("Rescheduling at most {num} lower priority tasks", num = max_to_reschedule);
+                let mut days = 1;
+                let mut count = 0;
                 for t in filter_tasks.iter().take(max_to_reschedule) {
-                    postpone_task_to_tomorrow(&key, t).await;
+                    postpone_task_by_days(&key, t, days).await;
+                    count += 1;
+                    if count >= remaining_tasks_for_week {
+                        days += 1;
+                        count = 0
+                    }
                 }
             }
         }
