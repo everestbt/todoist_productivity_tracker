@@ -111,11 +111,7 @@ async fn main() -> Result<(), reqwest::Error> {
                 .filter(|x| x.date != today.format("%Y-%m-%d").to_string()) // Filter out today's date
                 .filter(|x| !days.contains(&x.date)) // Filter out any excluded days 
                 .min_by_key(|x| x.total_completed);
-        if min_daily_option.is_none() {
-            println!("All days excluded, just keep going!")
-        }
-        else {
-            let min_daily = min_daily_option.unwrap();
+        if let Some(min_daily) = min_daily_option {
             if min_daily.total_completed == stats.goals.daily_goal {
                 println!("Daily goal is right!")
             }
@@ -130,6 +126,9 @@ async fn main() -> Result<(), reqwest::Error> {
                     println!("Excluded day {day}", day = min_daily.date)
                 }
             }
+        }
+        else {
+            println!("All days excluded, just keep going!")
         }
 
         // Load any weeks to filter out from weekly goal calculation
@@ -261,8 +260,8 @@ async fn main() -> Result<(), reqwest::Error> {
         }
         println!("Excluded day {day}", day = day)
     }
-    else if args.exclude_week.is_some() {
-        let day = NaiveDate::parse_from_str(&args.exclude_week.unwrap().to_owned(), "%Y-%m-%d").unwrap();
+    else if let Some(exclude_week) = args.exclude_week {
+        let day = NaiveDate::parse_from_str(&exclude_week.to_owned(), "%Y-%m-%d").unwrap();
         // Check that the day is a Monday
         if day.weekday() != Weekday::Mon {
             println!("An excluded week date must be a Monday");
