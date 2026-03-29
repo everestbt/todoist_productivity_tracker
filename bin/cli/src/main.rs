@@ -132,20 +132,21 @@ async fn main() -> Result<(), reqwest::Error> {
             }
         }
 
-        // Calculate date of this week to filter out
-        let this_week_start_day = today.week(Weekday::Mon).first_day();
-
         // Load any weeks to filter out from weekly goal calculation
-        let weeks_result = exclude_weeks::get_excluded_weeks();
-        if weeks_result.is_err() {
-            panic!()
-        }
-        let weeks : Vec<String> = weeks_result.unwrap().iter().map(|d| d.format("%Y-%m-%d").to_string()).collect();
+        let excluded_weeks: Vec<String> = exclude_weeks::get_excluded_weeks()
+            .expect("Failed to load excluded weeks")
+            .iter()
+            .map(|d| d.format("%Y-%m-%d").to_string())
+            .collect();
+
+        // Remove the latest item which will be for this week
+        let mut week_items = stats.week_items;
+        week_items.sort_by(|a,b| a.from.cmp(&b.from));
+        week_items.pop();
 
         // Check whether to increase weekly goal
-        let min_weekly = stats.week_items.iter()
-                .filter(|x| x.from != this_week_start_day.format("%Y-%m-%d").to_string()) // Filter out this week's day
-                .filter(|x| !weeks.contains(&x.from)) // Filter out any excluded weeks 
+        let min_weekly = week_items.iter()
+                .filter(|x| !excluded_weeks.contains(&x.from)) // Filter out any excluded weeks 
                 .min_by_key(|x| x.total_completed).unwrap();
         if min_weekly.total_completed == stats.goals.weekly_goal {
             println!("Weekly goal is right!")
