@@ -35,16 +35,16 @@ pub async fn get_todays_tasks(key : &str) -> Vec<Task> {
         .send()
         .await;
 
-    if req.is_err() {
-        log::error!("Failed to send the request for today tasks: {}", req.err().unwrap());
+    if let Err(r) = req {
+        log::error!("Failed to send the request for today tasks: {}", r);
         panic!("Failed to send the request for today tasks")
     }
     let response: Result<Response, reqwest::Error> = req.unwrap()
         .json()
         .await;
 
-    if response.is_err() {
-        log::error!("Failed to get a response for today tasks: {}", response.unwrap_err());
+    if let Err(r) = response {
+        log::error!("Failed to get a response for today tasks: {}", r);
         panic!("Failed to get a response for today tasks");
     }
 
@@ -57,16 +57,16 @@ pub async fn get_overdue_tasks(key : &str) -> Vec<Task> {
         .header("Authorization", "Bearer ".to_owned() + key)
         .send()
         .await;
-    if req.is_err() {
-        log::error!("Failed to send the request for overdue tasks: {}", req.err().unwrap());
+    if let Err(r) = req {
+        log::error!("Failed to send the request for overdue tasks: {}", r);
         panic!("Failed to send the request for overdue tasks")
     }
 
     let response: Result<Response, reqwest::Error> = req.unwrap()
         .json()
         .await;
-    if response.is_err() {
-        log::error!("Failed to get a response for overdue tasks: {}", response.unwrap_err());
+    if let Err(r) = response {
+        log::error!("Failed to get a response for overdue tasks: {}", r);
         panic!("Failed to get a response for overdue tasks");
     }
 
@@ -80,16 +80,16 @@ pub async fn get_tomorrow_tasks(key : &str) -> Vec<Task> {
         .send()
         .await;
 
-    if req.is_err() {
-        log::error!("Failed to send the request for tomorrow tasks: {}", req.err().unwrap());
+    if let Err(r) = req {
+        log::error!("Failed to send the request for tomorrow tasks: {}", r);
         panic!("Failed to send the request for tomorrow tasks")
     }
     let response: Result<Response, reqwest::Error> = req.unwrap()
         .json()
         .await;
 
-    if response.is_err() {
-        log::error!("Failed to get a response for tomorrow tasks: {}", response.unwrap_err());
+    if let Err(r) = response {
+        log::error!("Failed to get a response for tomorrow tasks: {}", r);
         panic!("Failed to get a response for tomorrow tasks");
     }
 
