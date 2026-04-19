@@ -31,3 +31,13 @@ directories = "6.0.0"
 log = "0.4.29"
 env_logger = "0.11.8"
 clap-verbosity-flag = "3.0.4"
+
+# Enable more optimization in the release profile at the cost of compile time.
+[profile.release]
+opt-level = 3
+# Compile the entire crate as one unit.
+# Slows compile times, marginal improvements.
+codegen-units = 1
+# Do a second optimization pass over the entire program, including dependencies.
+# Slows compile times, marginal improvements.
+lto = "thin"
