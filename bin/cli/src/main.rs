@@ -44,7 +44,7 @@ struct Args {
     #[arg(long)]
     exclude_day_shown: bool,
 
-    /// A week you want to exclude from the weekly goal calculation, should be date of Monday, in format YYYY-MM-DD
+    /// A week you want to exclude from the weekly goal calculation, should be the starting day for a week from your todoist setting, in format YYYY-MM-DD
     #[arg(long)]
     exclude_week: Option<String>,
 
@@ -67,12 +67,6 @@ async fn main() -> Result<(), reqwest::Error> {
     env_logger::Builder::new()
         .filter_level(args.verbosity.into())
         .init();
-    
-    let key_var = env::var("TODOIST_API_KEY");
-    if key_var.is_err() {
-        panic!("You need to set the environment variable TODOIST_API_KEY with your API key")
-    }
-    let key = key_var.unwrap();
 
     let today:NaiveDate = Local::now().naive_local().date();
 
@@ -81,6 +75,8 @@ async fn main() -> Result<(), reqwest::Error> {
             panic!("Cannot use --update-goals with either exclude shown commands");
         }
 
+        let key = get_key();
+        
         let stats: completed_fetch::CompletedStats = completed_fetch::get_completed_stats(&key).await;
 
         // Floating week progress
@@ -163,6 +159,7 @@ async fn main() -> Result<(), reqwest::Error> {
         }
     }
     else if args.postpone {
+        let key = get_key();
         let todays_tasks = filter_tasks::get_todays_tasks(&key).await;
         println!("Found {} tasks to move to tomorrow", todays_tasks.len());
         for t in todays_tasks.iter() {
@@ -170,6 +167,7 @@ async fn main() -> Result<(), reqwest::Error> {
         }
     }
     else if args.postpone_to_goal {
+        let key = get_key();
         // First reshedule all overdue tasks
         overdue(&key).await;
         // Get today tasks
@@ -238,6 +236,7 @@ async fn main() -> Result<(), reqwest::Error> {
         }
     }
     else if args.postpone_by_days.is_some() {
+        let key = get_key();
         // Get all tasks due tomorrow
         let todays_tasks: Vec<filter_tasks::Task> = filter_tasks::get_tomorrow_tasks(&key).await;
         // Filter to low priority tasks
@@ -250,6 +249,7 @@ async fn main() -> Result<(), reqwest::Error> {
         }
     }
     else if args.overdue {
+        let key = get_key();
         overdue(&key).await;
     }
     else if args.exclude_day.is_some() {
@@ -280,6 +280,14 @@ async fn main() -> Result<(), reqwest::Error> {
     }
 
     Ok(())
+}
+
+fn get_key() -> String {
+    let key_var = env::var("TODOIST_API_KEY");
+    if key_var.is_err() {
+        panic!("You need to set the environment variable TODOIST_API_KEY with your API key")
+    }
+    key_var.unwrap()
 }
 
 fn parse_due_date_time(due : &String) -> NaiveDateTime {
