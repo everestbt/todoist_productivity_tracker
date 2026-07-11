@@ -24,7 +24,7 @@ reqwest = { version = "0.13", features = ["json"] }
 tokio = { version = "1", features = ["full"] }
 chrono = "0.4.41"
 clap = { version = "4.5.41", features = ["derive"] }
-rusqlite = "0.39.0"
+rusqlite = "0.40"
 uuid = { version = "1.17.0", features = ["v4"]}
 strum = { version = "0.28", features = ["derive"] }
 directories = "6.0.0"
