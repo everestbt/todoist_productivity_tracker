@@ -1,17 +1,24 @@
 mod productivity_mode;
 
 use api::{completed_fetch, filter_tasks, update_task, update_goals};
-use db::{exclude_days, exclude_weeks};
-use chrono::{
-    Days, 
-    Local, 
-    NaiveDate, 
-    NaiveDateTime,
+use db::{
+    PARSER,
+    PRINTER,
+    exclude_days, 
+    exclude_weeks,
+};
+use jiff::{
+    ToSpan, 
+    Zoned, 
+    civil::DateTime,
 };
 use clap::Parser;
-use std::string::ToString;
-use std::cmp;
-use std::env;
+use std::{
+    cmp,
+    env,
+    ops::Add, 
+    string::ToString,
+};
 
 // Command line arguments
 #[derive(Parser, Debug)]
@@ -73,7 +80,7 @@ async fn main() -> Result<(), reqwest::Error> {
         .filter_level(args.verbosity.into())
         .init();
 
-    let today:NaiveDate = Local::now().naive_local().date();
+    let today = Zoned::now().date();
 
     if args.status {
         if args.update_goals && (args.exclude_day_shown || args.exclude_week_shown) {
@@ -96,7 +103,7 @@ async fn main() -> Result<(), reqwest::Error> {
             goal = stats.goals.weekly_goal);
 
         // Check what mode you should be operating in
-        let done_today = stats.days_items.iter().find(|x| x.date == today.format("%Y-%m-%d").to_string()).unwrap();
+        let done_today = stats.days_items.iter().find(|x| x.date == PRINTER.date_to_string(&today)).unwrap();
         let mode = productivity_mode::calculate_mode(sum_of_tasks, stats.goals.weekly_goal, stats.goals.daily_goal, done_today.total_completed);
         println!("Mode: {mode}!", mode = mode);
 
@@ -105,11 +112,11 @@ async fn main() -> Result<(), reqwest::Error> {
         if days_result.is_err() {
             panic!()
         }
-        let days : Vec<String> = days_result.unwrap().iter().map(|d| d.format("%Y-%m-%d").to_string()).collect();
+        let days : Vec<String> = days_result.unwrap().iter().map(|d| PRINTER.date_to_string(d)).collect();
 
         // Check whether to change daily goal
         let min_daily_option = stats.days_items.iter()
-                .filter(|x| x.date != today.format("%Y-%m-%d").to_string()) // Filter out today's date
+                .filter(|x| x.date != PRINTER.date_to_string(&today)) // Filter out today's date
                 .filter(|x| !days.contains(&x.date)) // Filter out any excluded days 
                 .min_by_key(|x| x.total_completed);
         if let Some(min_daily) = min_daily_option {
@@ -123,7 +130,7 @@ async fn main() -> Result<(), reqwest::Error> {
                     println!("Updated daily goal to {new}", new = min_daily.total_completed);
                 }
                 if args.exclude_day_shown {
-                    exclude_days::exclude_day(NaiveDate::parse_from_str(&min_daily.date, "%Y-%m-%d").expect("Date is in the wrong format")).expect("Failed to write excluded day");
+                    exclude_days::exclude_day(PARSER.parse_date(&min_daily.date).expect("Date is in the wrong format")).expect("Failed to write excluded day");
                     println!("Excluded day {day}", day = min_daily.date)
                 }
             }
@@ -136,7 +143,7 @@ async fn main() -> Result<(), reqwest::Error> {
         let excluded_weeks: Vec<String> = exclude_weeks::get_excluded_weeks()
             .expect("Failed to load excluded weeks")
             .iter()
-            .map(|d| d.format("%Y-%m-%d").to_string())
+            .map(|d| PRINTER.date_to_string(d))
             .collect();
 
         // Remove the latest item which will be for this week
@@ -158,7 +165,7 @@ async fn main() -> Result<(), reqwest::Error> {
                 println!("Updated weekly goal to {new}", new = min_weekly.total_completed);
             }
             if args.exclude_week_shown {
-                exclude_weeks::exclude_week(NaiveDate::parse_from_str(&min_weekly.from, "%Y-%m-%d").expect("Date is in the wrong format")).expect("Failed to write excluded week");
+                exclude_weeks::exclude_week(PARSER.parse_date(&min_weekly.from).expect("Date is in the wrong format")).expect("Failed to write excluded week");
                 println!("Excluded week from {day}", day = min_weekly.from)
             }
         }
@@ -227,7 +234,7 @@ async fn main() -> Result<(), reqwest::Error> {
         if args.update_goals {
             // Add on the number already achieved today
             let today = stats.days_items.iter()
-                .find(|x| x.date == today.format("%Y-%m-%d").to_string()).expect("Today should always exist"); // Find today's date
+                .find(|x| x.date == PRINTER.date_to_string(&today)).expect("Today should always exist"); // Find today's date
             // Take remaining for week + today OR maximum daily required to meet weekly goal to avoid over clogging days
             let remaining_for_week_including_today = cmp::min(remaining_tasks_for_week + today.total_completed, stats.goals.weekly_goal/7);
             if remaining_for_week_including_today <=0 {
@@ -258,12 +265,12 @@ async fn main() -> Result<(), reqwest::Error> {
         overdue(&key).await;
     }
     else if args.exclude_day.is_some() {
-        let day = NaiveDate::parse_from_str(&args.exclude_day.unwrap().to_owned(), "%Y-%m-%d").unwrap();
+        let day = PARSER.parse_date(&args.exclude_day.unwrap().to_owned()).unwrap();
         exclude_days::exclude_day(day).expect("Failed to exclude the day");
         println!("Excluded day {day}", day = day)
     }
     else if let Some(exclude_week) = args.exclude_week {
-        let day = NaiveDate::parse_from_str(&exclude_week.to_owned(), "%Y-%m-%d").unwrap();
+        let day = PARSER.parse_date(&exclude_week.to_owned()).unwrap();
         exclude_weeks::exclude_week(day).expect("Failed to exclude the week");
         println!("Excluded week from {day}", day = day)
     }
@@ -283,13 +290,14 @@ fn get_key() -> String {
     key_var.unwrap()
 }
 
-fn parse_due_date_time(due : &String) -> NaiveDateTime {
-    let due_date : NaiveDateTime = 
+fn parse_due_date_time(due : &String) -> DateTime {
+    let due_date : DateTime = 
     if due.contains("Z") {
-        NaiveDateTime::parse_from_str(&due.to_owned(), "%Y-%m-%dT%H:%M:%SZ").unwrap()
+        let zoned: Zoned = due.parse().unwrap();
+        zoned.datetime()
     }
     else {
-        NaiveDateTime::parse_from_str(&due.to_owned(), "%Y-%m-%dT%H:%M:%S").unwrap()
+        PARSER.parse_datetime(&due.to_owned()).unwrap()
     };
     due_date
 }
@@ -307,22 +315,22 @@ async fn postpone_task_to_tomorrow(key: &str, t: &filter_tasks::Task) {
 async fn postpone_task_by_days(key: &str, t: &filter_tasks::Task, days: i8) {
     // If it contains a time then need to preserve that
     if t.due.date.contains("T") {
-        let due_date_time : NaiveDateTime = parse_due_date_time(&t.due.date);
-        let new_due_date = due_date_time.checked_add_days(Days::new(days as u64)).unwrap();
-        update_task::update_task_due(key, &t.id, new_due_date.format("%Y-%m-%dT%H:%M:%S").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
+        let due_date_time = parse_due_date_time(&t.due.date);
+        let new_due_date = due_date_time.add(days.days());
+        update_task::update_task_due(key, &t.id, PRINTER.datetime_to_string(&new_due_date), t.due.lang.to_owned(), t.due.string.to_owned()).await;
         println!("Rescheduled {content} to {due}", content = t.content, due = new_due_date)
     }
     // If it is only a date 
     else {
-        let due_date = NaiveDate::parse_from_str(&t.due.date.to_owned(), "%Y-%m-%d").unwrap();
-        let new_due_date = due_date.checked_add_days(Days::new(days as u64)).unwrap();
-        update_task::update_task_due(key, &t.id, new_due_date.format("%Y-%m-%d").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
+        let due_date = PARSER.parse_date(&t.due.date.to_owned()).expect("Failed to parse string");
+        let new_due_date = due_date.add(days.days());
+        update_task::update_task_due(key, &t.id, PRINTER.date_to_string(&new_due_date), t.due.lang.to_owned(), t.due.string.to_owned()).await;
         println!("Rescheduled {content} to {due}", content = t.content, due = new_due_date)
     }
 }
 
 async fn overdue(key: &str) {
-    let today:NaiveDate = Local::now().naive_local().date();
+    let today = Zoned::now().date();
     let overdue_tasks = filter_tasks::get_overdue_tasks(key).await;
     println!("Found {} tasks to move to today", overdue_tasks.len());
     for t in overdue_tasks.iter() {
@@ -331,13 +339,13 @@ async fn overdue(key: &str) {
         if t.due.date.contains("T") {
             // Need to put the time on today
             let due_date_time = parse_due_date_time(&t.due.date);
-            let today_with_time = today.and_time(due_date_time.time());
-            update_task::update_task_due(key, &t.id, today_with_time.format("%Y-%m-%dT%H:%M:%S").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
+            let today_with_time = today.to_datetime(due_date_time.time());
+            update_task::update_task_due(key, &t.id, PRINTER.datetime_to_string(&today_with_time), t.due.lang.to_owned(), t.due.string.to_owned()).await;
             println!("Rescheduled {content} to {due}", content = t.content, due = today_with_time)
         }
         // If it is only a date 
         else {
-            update_task::update_task_due(key, &t.id, today.format("%Y-%m-%d").to_string(), t.due.lang.to_owned(), t.due.string.to_owned()).await;
+            update_task::update_task_due(key, &t.id, PRINTER.date_to_string(&today), t.due.lang.to_owned(), t.due.string.to_owned()).await;
             println!("Rescheduled {content} to today", content = t.content)
         }
     }

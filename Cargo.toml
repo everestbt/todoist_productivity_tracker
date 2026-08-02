@@ -22,7 +22,6 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 reqwest = { version = "0.13", features = ["json"] }
 tokio = { version = "1", features = ["full"] }
-chrono = "0.4.41"
 clap = { version = "4.5.41", features = ["derive"] }
 rusqlite = "0.40"
 uuid = { version = "1.17.0", features = ["v4"]}
@@ -31,6 +30,8 @@ directories = "6.0.0"
 log = "0.4.29"
 env_logger = "0.11.8"
 clap-verbosity-flag = "3.0.4"
+jiff = "0.2"
+anyhow = "1.0"
 
 # Enable more optimization in the release profile at the cost of compile time.
 [profile.release]

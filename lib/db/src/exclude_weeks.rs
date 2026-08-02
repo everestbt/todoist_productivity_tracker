@@ -1,14 +1,26 @@
-use chrono::{Days, Local, NaiveDate};
-use rusqlite::{params, Connection, Result}; // For database operations and result handling
-
+use jiff::{
+    ToSpan, 
+    Zoned, 
+    civil::Date, 
+};
+use rusqlite::{
+    params, 
+    Connection,
+}; 
 use db_lib::db_manager;
+use anyhow::Result;
+
+use crate::{
+    PARSER,
+    PRINTER,
+};
 
 struct ExcludedWeek {
     id: i32,
     week_start: String,
 }
 
-pub fn get_excluded_weeks() -> Result<Vec<NaiveDate>> {
+pub fn get_excluded_weeks() -> Result<Vec<Date>> {
     // Connect to SQLite database (creates the file if it doesn't exist)
     let conn: Connection = db_manager::get_connection();
     create_table(&conn)?;
@@ -21,18 +33,15 @@ pub fn get_excluded_weeks() -> Result<Vec<NaiveDate>> {
         })
     })?;
 
-    let mut day_vec : Vec<NaiveDate> = Vec::new();
+    let mut day_vec : Vec<Date> = Vec::new();
     for d in day_iter {
-        let parse = NaiveDate::parse_from_str(&d.unwrap().week_start.to_owned(), "%Y-%m-%d");
-        match parse.is_err() {
-            true => panic!("{}",parse.unwrap_err().to_string()),
-            false => day_vec.push(parse.unwrap()),
-        }
+        let parse = PARSER.parse_date(&d?.week_start.to_owned())?;
+        day_vec.push(parse);
     }
     Ok(day_vec)
 }
 
-pub fn exclude_week(day: NaiveDate) -> Result<()> {
+pub fn exclude_week(day: Date) -> Result<()> {
     // Connect to SQLite database (creates the file if it doesn't exist)
     let conn: Connection = db_manager::get_connection();
     create_table(&conn)?;
@@ -43,7 +52,7 @@ pub fn exclude_week(day: NaiveDate) -> Result<()> {
     // Add in the new excluded week
     conn.execute(
         "INSERT INTO excluded_weeks (week_start) VALUES (?1)",
-        params![day.format("%Y-%m-%d").to_string()],
+        params![PRINTER.date_to_string(&day)],
     )?;
 
     Ok(())
@@ -51,9 +60,9 @@ pub fn exclude_week(day: NaiveDate) -> Result<()> {
 
 // Any day older than 7 days can be safely deleted
 fn remove_old_weeks(conn: &Connection) -> Result<()> {
-    let today:NaiveDate = Local::now().naive_local().date();
+    let today = Zoned::now().date();
     // Calculate the day 5 weeks back, simplest calculation and always correct
-    let limit = today.checked_sub_days(Days::new(35)).unwrap();
+    let limit = today.checked_sub(5.weeks())?;
 
     let mut stmt = conn.prepare("SELECT id, week_start FROM excluded_weeks")?;
     let day_iter = stmt.query_map([], |row| {
@@ -64,8 +73,8 @@ fn remove_old_weeks(conn: &Connection) -> Result<()> {
     })?;
 
     for d in day_iter {
-        let val = d.unwrap();
-        let parse = NaiveDate::parse_from_str(&val.week_start.to_owned(), "%Y-%m-%d").unwrap();
+        let val = d?;
+        let parse = PARSER.parse_date(&val.week_start.to_owned())?;
         if parse.lt(&limit) {
             conn.execute(
                 "DELETE FROM excluded_weeks WHERE id = ?1",
