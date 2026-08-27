@@ -21,14 +21,14 @@ goals_lib = {path = "./lib/goals_lib", version = "0.0.0"}
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 reqwest = { version = "0.13", features = ["json"] }
-tokio = { version = "1", features = ["full"] }
-clap = { version = "4.5.41", features = ["derive"] }
+tokio = { version = "1.53", features = ["full"] }
+clap = { version = "4.6", features = ["derive"] }
 rusqlite = "0.40"
-uuid = { version = "1.17.0", features = ["v4"]}
+uuid = { version = "1.26", features = ["v4"]}
 strum = { version = "0.28", features = ["derive"] }
 directories = "6.0.0"
-log = "0.4.29"
-env_logger = "0.11.8"
+log = "0.4"
+env_logger = "0.11"
 clap-verbosity-flag = "3.0.4"
 jiff = "0.2"
 anyhow = "1.0"
