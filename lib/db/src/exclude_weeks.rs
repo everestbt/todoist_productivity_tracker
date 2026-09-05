@@ -35,7 +35,7 @@ pub fn get_excluded_weeks() -> Result<Vec<Date>> {
 
     let mut day_vec : Vec<Date> = Vec::new();
     for d in day_iter {
-        let parse = PARSER.parse_date(&d?.week_start.to_owned())?;
+        let parse = PARSER.parse_date(&d?.week_start)?;
         day_vec.push(parse);
     }
     Ok(day_vec)
@@ -74,7 +74,7 @@ fn remove_old_weeks(conn: &Connection) -> Result<()> {
 
     for d in day_iter {
         let val = d?;
-        let parse = PARSER.parse_date(&val.week_start.to_owned())?;
+        let parse = PARSER.parse_date(&val.week_start)?;
         if parse.lt(&limit) {
             conn.execute(
                 "DELETE FROM excluded_weeks WHERE id = ?1",

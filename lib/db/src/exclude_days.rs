@@ -35,7 +35,7 @@ pub fn get_excluded_days() -> Result<Vec<Date>> {
 
     let mut day_vec : Vec<Date> = Vec::new();
     for d in day_iter {
-        let parse = PARSER.parse_date(&d?.day.to_owned())?;
+        let parse = PARSER.parse_date(&d?.day)?;
         day_vec.push(parse);
     }
     Ok(day_vec)
@@ -73,7 +73,7 @@ fn remove_old_days(conn: &Connection) -> Result<()> {
 
     for d in day_iter {
         let val = d?;
-        let parse = PARSER.parse_date(&val.day.to_owned())?;
+        let parse = PARSER.parse_date(&val.day)?;
         if parse.lt(&limit) {
             conn.execute(
                 "DELETE FROM excluded_days WHERE id = ?1",
