@@ -265,12 +265,12 @@ async fn main() -> Result<(), reqwest::Error> {
         overdue(&key).await;
     }
     else if args.exclude_day.is_some() {
-        let day = PARSER.parse_date(&args.exclude_day.unwrap().to_owned()).unwrap();
+        let day = PARSER.parse_date(args.exclude_day.unwrap()).unwrap();
         exclude_days::exclude_day(day).expect("Failed to exclude the day");
         println!("Excluded day {day}", day = day)
     }
     else if let Some(exclude_week) = args.exclude_week {
-        let day = PARSER.parse_date(&exclude_week.to_owned()).unwrap();
+        let day = PARSER.parse_date(&exclude_week).unwrap();
         exclude_weeks::exclude_week(day).expect("Failed to exclude the week");
         println!("Excluded week from {day}", day = day)
     }
@@ -297,7 +297,7 @@ fn parse_due_date_time(due : &String) -> DateTime {
         zoned.datetime()
     }
     else {
-        PARSER.parse_datetime(&due.to_owned()).unwrap()
+        PARSER.parse_datetime(due).unwrap()
     };
     due_date
 }
@@ -322,7 +322,7 @@ async fn postpone_task_by_days(key: &str, t: &filter_tasks::Task, days: i8) {
     }
     // If it is only a date 
     else {
-        let due_date = PARSER.parse_date(&t.due.date.to_owned()).expect("Failed to parse string");
+        let due_date = PARSER.parse_date(&t.due.date).expect("Failed to parse string");
         let new_due_date = due_date.add(days.days());
         update_task::update_task_due(key, &t.id, PRINTER.date_to_string(&new_due_date), t.due.lang.to_owned(), t.due.string.to_owned()).await;
         println!("Rescheduled {content} to {due}", content = t.content, due = new_due_date)
