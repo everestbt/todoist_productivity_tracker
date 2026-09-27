@@ -232,6 +232,7 @@ dependencies = [
  "db",
  "env_logger",
  "jiff",
+ "rand",
  "reqwest",
  "strum",
  "tokio",

@@ -19,6 +19,7 @@ use std::{
     ops::Add, 
     string::ToString,
 };
+use rand::random_range;
 
 // Command line arguments
 #[derive(Parser, Debug)]
@@ -28,7 +29,9 @@ struct Args {
     #[arg(short, long)]
     status: bool,
 
-    /// Whether to update the goals, must be used with the status flag OR postpone-to-goal flag. When used with status it will be based off daily target achieved over last week. When used with postpone-to-goal it will set a goal based off what is needed to reach the weekly goal (or 1 if already achieved), with a maximum of the daily average required to meet the weekly goal to avoid over subsribed days following breaks.
+    /// Whether to update the goals, must be used with the status flag OR postpone-to-goal flag. When used with status it will be based off daily target achieved over last week. 
+    /// When used with postpone-to-goal it will set a goal based off what is needed to reach the weekly goal (or 1 if already achieved), 
+    /// with a maximum of the daily average required to meet the weekly goal to avoid over subsribed days following breaks.
     #[arg(short, long)]
     update_goals: bool,
 
@@ -36,7 +39,8 @@ struct Args {
     #[arg(long)]
     postpone: bool,
 
-    /// Postpone tasks assigned to today to tomorrow, leaving behind those with a specified time, any of higher priority, and then enough to meet the rolling weekly goal. Overdue tasks are also moved forward.
+    /// Postpone tasks assigned to today to tomorrow, leaving behind those with a specified time, any of higher priority, and then enough to meet the rolling weekly goal. 
+    /// Overdue tasks are also moved forward. It will also keep back 1 task to keep progress on backlogs.
     #[arg(long)]
     postpone_to_goal: bool,
 
@@ -203,10 +207,14 @@ async fn main() -> Result<(), reqwest::Error> {
             let low_priority_total = filter_tasks.len() as i32;
             // If no needed remaining tasks for the week then just move all filtered tasks OR if the remaining tasks is satisfied by the higher priority items
             if remaining_tasks_for_week <= 0 || remaining_tasks_for_week <= total_today_tasks - low_priority_total {
-                println!("Rescheduling all lower priority tasks");
+                println!("Rescheduling all lower priority tasks but one random");
                 let mut days = 1;
                 let mut count = 0;
+                let random_task = filter_tasks[random_range(0..filter_tasks.len())];
                 for t in filter_tasks.iter() {
+                    if t.id == random_task.id {
+                        continue
+                    }
                     postpone_task_by_days(&key, t, days).await;
                     count += 1;
                     if count >= remaining_tasks_for_week {
