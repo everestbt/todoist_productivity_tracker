@@ -1,6 +1,6 @@
 use jiff::{
     ToSpan, 
-    Zoned, 
+    ZonedDateTime, 
     civil::Date, 
 };
 use rusqlite::{
@@ -60,7 +60,7 @@ pub fn exclude_day(day: Date) -> Result<()> {
 
 // Any day older than 7 days can be safely deleted
 fn remove_old_days(conn: &Connection) -> Result<()> {
-    let today = Zoned::now().date();
+    let today = ZonedDateTime::now().date();
     let limit = today.checked_sub(7.days())?;
 
     let mut stmt = conn.prepare("SELECT id, day FROM excluded_days")?;

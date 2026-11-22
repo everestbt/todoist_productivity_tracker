@@ -1,6 +1,6 @@
 use jiff::{
     ToSpan, 
-    Zoned, 
+    ZonedDateTime, 
     civil::Date, 
 };
 use rusqlite::{
@@ -60,7 +60,7 @@ pub fn exclude_week(day: Date) -> Result<()> {
 
 // Any day older than 7 days can be safely deleted
 fn remove_old_weeks(conn: &Connection) -> Result<()> {
-    let today = Zoned::now().date();
+    let today = ZonedDateTime::now().date();
     // Calculate the day 5 weeks back, simplest calculation and always correct
     let limit = today.checked_sub(5.weeks())?;
 

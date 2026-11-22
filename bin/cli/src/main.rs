@@ -9,7 +9,7 @@ use db::{
 };
 use jiff::{
     ToSpan, 
-    Zoned, 
+    ZonedDateTime, 
     civil::DateTime,
 };
 use clap::Parser;
@@ -84,7 +84,7 @@ async fn main() -> Result<(), reqwest::Error> {
         .filter_level(args.verbosity.into())
         .init();
 
-    let today = Zoned::now().date();
+    let today = ZonedDateTime::now().date();
 
     if args.status {
         if args.update_goals && (args.exclude_day_shown || args.exclude_week_shown) {
@@ -301,7 +301,7 @@ fn get_key() -> String {
 fn parse_due_date_time(due : &String) -> DateTime {
     let due_date : DateTime = 
     if due.contains("Z") {
-        let zoned: Zoned = due.parse().unwrap();
+        let zoned: ZonedDateTime = due.parse().unwrap();
         zoned.datetime()
     }
     else {
@@ -338,7 +338,7 @@ async fn postpone_task_by_days(key: &str, t: &filter_tasks::Task, days: i8) {
 }
 
 async fn overdue(key: &str) {
-    let today = Zoned::now().date();
+    let today = ZonedDateTime::now().date();
     let overdue_tasks = filter_tasks::get_overdue_tasks(key).await;
     println!("Found {} tasks to move to today", overdue_tasks.len());
     for t in overdue_tasks.iter() {
