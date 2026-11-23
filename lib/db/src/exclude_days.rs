@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use jiff::{
     ToSpan, 
     ZonedDateTime, 
@@ -9,11 +10,6 @@ use rusqlite::{
 };
 use db_lib::db_manager;
 use anyhow::Result;
-
-use crate::{
-    PARSER,
-    PRINTER,
-};
 
 struct ExcludedDay {
     id: i32,
@@ -35,7 +31,7 @@ pub fn get_excluded_days() -> Result<Vec<Date>> {
 
     let mut day_vec : Vec<Date> = Vec::new();
     for d in day_iter {
-        let parse = PARSER.parse_date(&d?.day)?;
+        let parse = Date::from_str(&d?.day)?;
         day_vec.push(parse);
     }
     Ok(day_vec)
@@ -52,7 +48,7 @@ pub fn exclude_day(day: Date) -> Result<()> {
     // Add in the new day
     conn.execute(
         "INSERT INTO excluded_days (day) VALUES (?1)",
-        params![PRINTER.date_to_string(&day)],
+        params![day.to_string()],
     )?;
 
     Ok(())
@@ -73,7 +69,7 @@ fn remove_old_days(conn: &Connection) -> Result<()> {
 
     for d in day_iter {
         let val = d?;
-        let parse = PARSER.parse_date(&val.day)?;
+        let parse = Date::from_str(&val.day)?;
         if parse.lt(&limit) {
             conn.execute(
                 "DELETE FROM excluded_days WHERE id = ?1",
